@@ -36,21 +36,32 @@ steps) or as a flat top-down layout.
 - **SVG rendering** — the scene renders to a single SVG element. Assets are
   SVG, projection is coordinate math, and SVG export falls out of the
   renderer for free. No canvas engine.
+- **lucide-react** — flat icon set used as top-view artwork and UI icons.
 - **Vitest** — unit tests for the pure logic modules.
 - No other runtime dependencies.
 
 ## Asset pipeline
 
-Assets are individual SVG files exported from Figma, one file per shape, named
-by shape (e.g. `cube-server.svg`), stored under `assets/<category>/`:
-
-- `assets/graphics/` — isometric artwork (9 shapes present today; more later).
-- `assets/icons/` — flat icons, used as top-view artwork (pending export).
-- `assets/floor/` — floor/platform artwork (pending export).
-- `assets/tags/` — tag/label artwork (pending export).
-
+Only the isometric graphics come from Figma: individual SVG files, one per
+shape, named by shape (e.g. `cube-server.svg`), stored under
+`assets/graphics/` (9 shapes present today; more can be dropped in later).
 Only one color variant (blue) is exported per shape; all other colors are
 derived programmatically.
+
+Everything else is generated, not exported:
+
+- **Top-view / flat icons:** Lucide icons (`lucide-react`). The manifest maps
+  each `assetId` to a Lucide icon name (e.g. `cube-server` → `server`).
+- **Floors:** parallelogram slabs drawn programmatically — flat top face with
+  an optional thin extruded edge (as in the kit), sharp or rounded/pill
+  corners, sized in grid cells, tinted from the element's color (light top,
+  darker edges). Rendered as a plain rectangle in top view.
+- **Tags:** drawn programmatically to match the kit reference:
+  - *Bubble tag* — rounded pill with text and optional Lucide icon; skewed
+    onto the iso plane in iso view, flat in top view.
+  - *Tips tag* — small tooltip box with pointer, light or dark.
+  - *Callout* — screen-aligned white card with optional title + body text
+    (never skewed, like the kit's callouts).
 
 ### Palette normalization
 
@@ -131,13 +142,16 @@ type Tag = {
   attachedTo?: string;                // element id, else free at gridX/gridY
   gridX: number; gridY: number;
   text: string; color: string;
+  style: 'bubble' | 'tips';           // pill vs tooltip box
+  icon?: string;                      // optional Lucide icon name
 };
 
 type Text = {
   kind: 'text'; id: string;
   gridX: number; gridY: number;
   content: string;
-  variant: 'plain' | 'callout';       // callout = boxed note
+  title?: string;                     // callouts may have a bold title line
+  variant: 'plain' | 'callout';       // callout = white card, screen-aligned
 };
 ```
 
@@ -159,9 +173,9 @@ A pure module `src/lib/projection.ts`:
 Switching rotation or mode only changes `doc.view`; the renderer re-projects.
 Connectors recompute their routes from their endpoints' projected anchors.
 
-**Top-view artwork:** flat icons from `assets/icons/` matched to graphics by
-name. Until icons are exported, top view renders a rounded rect + the asset
-name as fallback.
+**Top-view artwork:** a rounded tile tinted with the element's color, showing
+the asset's mapped Lucide icon and name. Floors become plain rectangles; tags
+and text render flat.
 
 ## Rendering
 
@@ -218,7 +232,6 @@ Two screens, React Router not needed (simple state switch):
 
 ## Open items
 
-- `assets/icons/`, `assets/floor/`, `assets/tags/` exports pending from Figma;
-  top view uses the fallback rendering and floors/tags use simple generated
-  shapes until then.
+- More isometric graphics can be exported from Figma later; the pipeline picks
+  up new files in `assets/graphics/` automatically.
 - Canvas thumbnails on the home screen — nice-to-have, not v1-blocking.
