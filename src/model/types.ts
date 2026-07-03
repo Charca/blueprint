@@ -11,11 +11,19 @@ export interface Doc {
   elements: Element[];
 }
 
+export interface AssetLabel {
+  text: string;
+  style: 'text' | 'tag';
+  color: string;                  // text color for 'text', pill color for 'tag'
+  orientation: 'left' | 'right';  // rendered only for 'tag'
+}
+
 export interface AssetEl {
   kind: 'asset'; id: string;
   gridX: number; gridY: number;
   assetId: string;
   color: string;
+  label?: AssetLabel;
 }
 
 export interface FloorEl {

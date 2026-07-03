@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CELL, ISO_X, ISO_Y, depth, planeMatrix, readablePlaneMatrix, project, rotateGrid, unproject, unrotateGrid,
+  CELL, ISO_X, ISO_Y, depth, planeMatrix, readablePlaneMatrix, project, rotateGrid, unproject, unrotateGrid, labelPlaneMatrix,
 } from './projection';
 import type { Rotation, ViewState } from './projection';
 
@@ -69,6 +69,17 @@ describe('projection', () => {
         const a = Number(m.slice(7, -1).split(' ')[0]);
         expect(a).toBeGreaterThanOrEqual(0);
       }
+    }
+  });
+
+  it('labelPlaneMatrix anchors at the origin with rightward, unmirrored bases', () => {
+    for (const orientation of ['left', 'right'] as const) {
+      const m = labelPlaneMatrix({ x: 10, y: 20 }, orientation);
+      const [a, b, c, d, e, f] = m.slice(7, -1).split(' ').map(Number);
+      expect(a).toBeGreaterThan(0);          // text reads left-to-right
+      expect(a * d - b * c).toBeGreaterThan(0); // not mirrored
+      expect(e).toBe(10);
+      expect(f).toBe(20);
     }
   });
 });

@@ -1,7 +1,7 @@
 import { PRESETS } from '../lib/color';
 import { uid } from '../lib/ids';
 import type { Point } from '../lib/projection';
-import type { Element } from './types';
+import type { AssetLabel, Element } from './types';
 
 export function addElement(els: Element[], el: Element): Element[] {
   return [...els, el];
@@ -84,4 +84,23 @@ export function createFromPlacing(placing: string, cell: Point): Element {
     default:
       return { kind: 'text', ...base, content: 'Text', variant: 'plain' };
   }
+}
+
+export const DEFAULT_LABEL_COLOR = '#2A3242';
+
+export function makeLabel(text: string): AssetLabel {
+  return { text, style: 'text', color: DEFAULT_LABEL_COLOR, orientation: 'right' };
+}
+
+/** Create (with defaults), retext, or remove (empty text) an asset's label. */
+export function setAssetLabel(els: Element[], id: string, text: string): Element[] {
+  return els.map((el) => {
+    if (el.id !== id || el.kind !== 'asset') return el;
+    const trimmed = text.trim();
+    if (!trimmed) {
+      const { label: _label, ...rest } = el;
+      return rest;
+    }
+    return { ...el, label: el.label ? { ...el.label, text: trimmed } : makeLabel(trimmed) };
+  });
 }
