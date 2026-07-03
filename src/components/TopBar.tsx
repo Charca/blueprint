@@ -62,7 +62,14 @@ export function TopBar() {
         <FileCode2 size={16} />
       </button>
       <button className="bp-icon-btn" title="Export PNG"
-        onClick={() => { void svgToPngBlob(buildSvg(doc)).then((b) => download(`${doc.name}.png`, b)); }}>
+        onClick={() => {
+          svgToPngBlob(buildSvg(doc))
+            .then((b) => download(`${doc.name}.png`, b))
+            .catch((err) => {
+              console.error('Blueprint: PNG export failed', err);
+              window.alert('PNG export failed.');
+            });
+        }}>
         <ImageDown size={16} />
       </button>
     </div>

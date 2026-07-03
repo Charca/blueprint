@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useAppStore } from '../store/appStore';
 import { useDocStore } from '../store/docStore';
 import { CanvasView } from './CanvasView';
 import { Inspector } from './Inspector';
@@ -9,11 +10,16 @@ export function Editor({ docId }: { docId: string }) {
   const doc = useDocStore((s) => s.doc);
   const openDoc = useDocStore((s) => s.openDoc);
   const closeDoc = useDocStore((s) => s.closeDoc);
+  const goHome = useAppStore((s) => s.goHome);
 
   useEffect(() => {
     openDoc(docId);
+    if (!useDocStore.getState().doc) {
+      goHome();
+      return;
+    }
     return () => closeDoc();
-  }, [docId, openDoc, closeDoc]);
+  }, [docId, openDoc, closeDoc, goHome]);
 
   if (!doc) return <div className="bp-loading">Loading…</div>;
 

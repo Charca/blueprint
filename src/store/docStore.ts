@@ -52,6 +52,10 @@ function flushPendingSave(): void {
   }
 }
 
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', flushPendingSave);
+}
+
 export const useDocStore = create<DocState>((set, get) => ({
   doc: null,
   selection: [],

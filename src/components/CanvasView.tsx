@@ -98,7 +98,12 @@ export function CanvasView() {
     const s = useDocStore.getState();
     e.stopPropagation();
     svgRef.current!.setPointerCapture(e.pointerId);
-    if (placing) return;
+    if (s.placing) {
+      const cell = cellAt(e);
+      s.apply((els) => addElement(els, createFromPlacing(s.placing!, cell)));
+      if (!e.shiftKey) s.setPlacing(null);
+      return;
+    }
     const el = doc.elements.find((x) => x.id === id);
     if (!el) return;
     if (s.tool === 'connect') {

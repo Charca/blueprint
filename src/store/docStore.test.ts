@@ -93,4 +93,18 @@ describe('docStore', () => {
       vi.useRealTimers();
     }
   });
+
+  it('flushes the pending save on pagehide', () => {
+    vi.useFakeTimers();
+    try {
+      const s = () => useDocStore.getState();
+      const docA = s().doc!;
+      s().apply((els) => addElement(els, asset('a')));
+      expect(loadDoc(docA.id)?.elements).toHaveLength(0);
+      window.dispatchEvent(new Event('pagehide'));
+      expect(loadDoc(docA.id)?.elements).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
