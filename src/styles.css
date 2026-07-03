@@ -33,3 +33,11 @@ button { font: inherit; cursor: pointer; }
 .bp-palette-row { display: flex; align-items: center; gap: 8px; border: 1px solid transparent; background: transparent; border-radius: 8px; padding: 7px 8px; text-align: left; }
 .bp-palette-row:hover { background: #f0f4fb; }
 .bp-palette-row.bp-active { border-color: #3479ff; background: #eaf1ff; }
+
+.bp-name { border: 1px solid transparent; border-radius: 6px; padding: 5px 8px; font: inherit; font-weight: 600; width: 220px; background: transparent; }
+.bp-name:hover, .bp-name:focus { border-color: #d4dae6; background: #fff; outline: none; }
+.bp-topbar-spacer { flex: 1; }
+.bp-divider { width: 1px; height: 20px; background: #e3e8f2; margin: 0 4px; }
+.bp-seg { display: flex; border: 1px solid #d4dae6; border-radius: 8px; overflow: hidden; margin-left: 6px; }
+.bp-seg button { border: none; background: #fff; padding: 6px 12px; font-size: 13px; }
+.bp-seg .bp-seg-active { background: #3479ff; color: #fff; }

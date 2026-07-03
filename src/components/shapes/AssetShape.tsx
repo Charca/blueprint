@@ -4,6 +4,7 @@ import { instanceMarkup } from '../../lib/assetInstance';
 import { project } from '../../lib/projection';
 import type { ViewState } from '../../lib/projection';
 import type { AssetEl } from '../../model/types';
+import { TopTile } from './TopTile';
 
 export interface ShapeProps<T> {
   el: T;
@@ -16,6 +17,9 @@ export interface ShapeProps<T> {
 export function AssetShape({ el, view, selected, onPointerDown }: ShapeProps<AssetEl>) {
   const def = ASSETS[el.assetId];
   if (!def) return null;
+  if (view.mode === 'top') {
+    return <TopTile el={el} view={view} selected={selected} onPointerDown={onPointerDown} />;
+  }
   const pt = project({ x: el.gridX, y: el.gridY }, view);
   return (
     <g
