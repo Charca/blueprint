@@ -1,3 +1,8 @@
+import { useAppStore } from './store/appStore';
+import { Editor } from './components/Editor';
+import { Home } from './components/Home';
+
 export function App() {
-  return <h1>Blueprint</h1>;
+  const docId = useAppStore((s) => s.docId);
+  return docId ? <Editor docId={docId} key={docId} /> : <Home />;
 }
