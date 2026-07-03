@@ -41,3 +41,5 @@ button { font: inherit; cursor: pointer; }
 .bp-seg { display: flex; border: 1px solid #d4dae6; border-radius: 8px; overflow: hidden; margin-left: 6px; }
 .bp-seg button { border: none; background: #fff; padding: 6px 12px; font-size: 13px; }
 .bp-seg .bp-seg-active { background: #3479ff; color: #fff; }
+
+.bp-tool-active { background: #eaf1ff; color: #3479ff; }

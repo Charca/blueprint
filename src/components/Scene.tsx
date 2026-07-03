@@ -4,6 +4,7 @@ import type { ViewState } from '../lib/projection';
 import { anchorOf } from '../model/ops';
 import type { Element } from '../model/types';
 import { AssetShape } from './shapes/AssetShape';
+import { ConnectorShape } from './shapes/ConnectorShape';
 
 export interface SceneProps {
   elements: Element[];
@@ -27,6 +28,10 @@ export function Scene({
   };
   return (
     <>
+      {elements.filter((e) => e.kind === 'connector').map((el) => (
+        <ConnectorShape key={el.id} el={el} elements={elements}
+          selected={selection?.has(el.id)} {...shared} />
+      ))}
       {assets.map((el) => (
         <AssetShape key={el.id} el={el} selected={selection?.has(el.id)} {...shared} />
       ))}

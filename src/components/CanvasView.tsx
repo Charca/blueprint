@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { unproject } from '../lib/projection';
 import type { Point } from '../lib/projection';
+import { uid } from '../lib/ids';
 import {
-  addElement, createFromPlacing, deleteElements, duplicateElements, moveElements,
+  addElement, createFromPlacing, deleteElements, duplicateElements, moveElements, updateElement,
 } from '../model/ops';
 import { useDocStore } from '../store/docStore';
 import { Grid } from './Grid';
@@ -16,6 +17,7 @@ export function CanvasView() {
   const doc = useDocStore((s) => s.doc);
   const selection = useDocStore((s) => s.selection);
   const placing = useDocStore((s) => s.placing);
+  const connectFrom = useDocStore((s) => s.connectFrom);
   const svgRef = useRef<SVGSVGElement>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [hoverCell, setHoverCell] = useState<Point | null>(null);
@@ -99,6 +101,21 @@ export function CanvasView() {
     if (placing) return;
     const el = doc.elements.find((x) => x.id === id);
     if (!el) return;
+    if (s.tool === 'connect') {
+      const target = doc.elements.find((x) => x.id === id);
+      if (!target || target.kind === 'connector') return;
+      if (!s.connectFrom) {
+        s.setConnectFrom(id);
+      } else if (s.connectFrom !== id) {
+        const fromId = s.connectFrom;
+        s.apply((els) => addElement(els, {
+          kind: 'connector', id: uid(), fromId, toId: id, style: 'solid', color: '#425066',
+        }));
+        s.setConnectFrom(null);
+        s.setTool('select');
+      }
+      return;
+    }
     const next = e.shiftKey
       ? selection.includes(id) ? selection.filter((x) => x !== id) : [...selection, id]
       : selection.includes(id) ? selection : [id];
@@ -106,6 +123,15 @@ export function CanvasView() {
     if (el.kind !== 'connector') {
       s.beginTransient();
       setDrag({ kind: 'move', last: cellAt(e), ids: next.length ? next : [id], moved: false });
+    }
+  };
+
+  const onElementDoubleClick = (id: string) => {
+    const el = doc.elements.find((x) => x.id === id);
+    if (!el) return;
+    if (el.kind === 'connector') {
+      const label = window.prompt('Connector label (empty to remove)', el.label ?? '');
+      if (label !== null) s.apply((els) => updateElement(els, id, { label: label || undefined }));
     }
   };
 
@@ -147,8 +173,9 @@ export function CanvasView() {
         <Scene
           elements={doc.elements}
           view={doc.view}
-          selection={new Set(selection)}
+          selection={new Set(connectFrom ? [...selection, connectFrom] : selection)}
           onElementPointerDown={onElementPointerDown}
+          onElementDoubleClick={onElementDoubleClick}
           ghost={placing && hoverCell ? (
             <g opacity={0.5} style={{ pointerEvents: 'none' }}>
               <Scene elements={[createFromPlacing(placing, hoverCell)]} view={doc.view} />

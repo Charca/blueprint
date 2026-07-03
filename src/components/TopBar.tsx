@@ -1,4 +1,4 @@
-import { ArrowLeft, Redo2, RotateCcw, RotateCw, Undo2 } from 'lucide-react';
+import { ArrowLeft, Redo2, RotateCcw, RotateCw, Spline, Undo2 } from 'lucide-react';
 import type { Rotation } from '../lib/projection';
 import { useAppStore } from '../store/appStore';
 import { useDocStore } from '../store/docStore';
@@ -9,6 +9,8 @@ export function TopBar() {
   const setView = useDocStore((s) => s.setView);
   const undo = useDocStore((s) => s.undo);
   const redo = useDocStore((s) => s.redo);
+  const tool = useDocStore((s) => s.tool);
+  const setTool = useDocStore((s) => s.setTool);
   const goHome = useAppStore((s) => s.goHome);
   if (!doc) return null;
   const { view } = doc;
@@ -28,6 +30,13 @@ export function TopBar() {
       <div className="bp-topbar-spacer" />
       <button className="bp-icon-btn" title="Undo (⌘Z)" onClick={undo}><Undo2 size={16} /></button>
       <button className="bp-icon-btn" title="Redo (⇧⌘Z)" onClick={redo}><Redo2 size={16} /></button>
+      <button
+        className={`bp-icon-btn${tool === 'connect' ? ' bp-tool-active' : ''}`}
+        title="Connect elements"
+        onClick={() => setTool(tool === 'connect' ? 'select' : 'connect')}
+      >
+        <Spline size={16} />
+      </button>
       <div className="bp-divider" />
       <button className="bp-icon-btn" title="Rotate left" onClick={() => rotate(-1)}>
         <RotateCcw size={16} />
