@@ -50,4 +50,17 @@ describe('export/svg', () => {
     expect(svg).not.toContain('__BP__');
     expect(svg).not.toContain('class=');
   });
+
+  it('includes shape labels in the markup and bounds', () => {
+    const labeled: Doc = {
+      ...doc,
+      elements: [{
+        kind: 'asset', id: 'a1', gridX: 0, gridY: 0, assetId: 'cube-plain', color: '#E05252',
+        label: { text: 'Gateway', style: 'tag', color: '#D6E0FF', orientation: 'left' },
+      }],
+    };
+    expect(buildSvg(labeled)).toContain('Gateway');
+    const b = contentBounds(labeled.elements, labeled.view);
+    expect(b.minY + b.height).toBeGreaterThanOrEqual(74 + 80);
+  });
 });
