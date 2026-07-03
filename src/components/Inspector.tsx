@@ -1,7 +1,7 @@
 import { Trash2 } from 'lucide-react';
 import { PRESETS } from '../lib/color';
 import { deleteElements, setLabel, updateElement } from '../model/ops';
-import type { AssetEl, AssetLabel, ConnectorEl, FloorEl, TagEl } from '../model/types';
+import type { AssetEl, ConnectorEl, FloorEl, Label, TagEl } from '../model/types';
 import { useDocStore } from '../store/docStore';
 
 export function Inspector() {
@@ -35,7 +35,10 @@ export function Inspector() {
           />
         </div>
       )}
-      {single?.kind === 'asset' && (
+      {single?.kind === 'floor' && (
+        <FloorControls el={single} onPatch={(patch) => apply((els) => updateElement(els, single.id, patch))} />
+      )}
+      {single && (single.kind === 'asset' || single.kind === 'floor') && (
         <LabelControls
           el={single}
           onText={(text) => apply((els) => setLabel(els, single.id, text))}
@@ -43,17 +46,14 @@ export function Inspector() {
             const current = single.label;
             if (!current) return;
             if (Object.entries(patch).every(
-              ([k, v]) => current[k as keyof AssetLabel] === v,
+              ([k, v]) => current[k as keyof Label] === v,
             )) return;
             apply((els) => els.map((e) =>
-              e.id === single.id && e.kind === 'asset' && e.label
+              e.id === single.id && (e.kind === 'asset' || e.kind === 'floor') && e.label
                 ? { ...e, label: { ...e.label, ...patch } }
                 : e));
           }}
         />
-      )}
-      {single?.kind === 'floor' && (
-        <FloorControls el={single} onPatch={(patch) => apply((els) => updateElement(els, single.id, patch))} />
       )}
       {single?.kind === 'connector' && (
         <div className="bp-insp-row">
@@ -109,9 +109,9 @@ function FloorControls({ el, onPatch }: { el: FloorEl; onPatch: (p: Partial<Floo
 }
 
 function LabelControls({ el, onText, onPatch }: {
-  el: AssetEl;
+  el: { id: string; label?: Label };
   onText: (text: string) => void;
-  onPatch: (patch: Partial<AssetLabel>) => void;
+  onPatch: (patch: Partial<Label>) => void;
 }) {
   const label = el.label;
   return (
