@@ -3,10 +3,11 @@ import { unproject } from '../lib/projection';
 import type { Point } from '../lib/projection';
 import { uid } from '../lib/ids';
 import {
-  addElement, createFromPlacing, deleteElements, duplicateElements, moveElements, updateElement,
+  addElement, createFromPlacing, deleteElements, duplicateElements, moveElements, setAssetLabel, updateElement,
 } from '../model/ops';
 import { useDocStore } from '../store/docStore';
 import { Grid } from './Grid';
+import { LabelEditor } from './LabelEditor';
 import { Scene } from './Scene';
 
 interface PanDrag { kind: 'pan'; sx: number; sy: number; cx: number; cy: number }
@@ -21,6 +22,7 @@ export function CanvasView() {
   const svgRef = useRef<SVGSVGElement>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [hoverCell, setHoverCell] = useState<Point | null>(null);
+  const [labelEditId, setLabelEditId] = useState<string | null>(null);
 
   const cam = doc?.camera ?? { x: 0, y: 0, zoom: 1 };
 
@@ -135,6 +137,10 @@ export function CanvasView() {
     const s = useDocStore.getState();
     const el = doc.elements.find((x) => x.id === id);
     if (!el) return;
+    if (el.kind === 'asset') {
+      setLabelEditId(id);
+      return;
+    }
     if (el.kind === 'connector') {
       const label = window.prompt('Connector label (empty to remove)', el.label ?? '');
       if (label !== null) s.apply((els) => updateElement(els, id, { label: label || undefined }));
@@ -207,6 +213,21 @@ export function CanvasView() {
             </g>
           ) : null}
         />
+        {(() => {
+          const editing = labelEditId ? doc.elements.find((x) => x.id === labelEditId) : null;
+          if (!editing || editing.kind !== 'asset') return null;
+          return (
+            <LabelEditor
+              el={editing}
+              view={doc.view}
+              onCommit={(text) => {
+                useDocStore.getState().apply((els) => setAssetLabel(els, editing.id, text));
+                setLabelEditId(null);
+              }}
+              onCancel={() => setLabelEditId(null)}
+            />
+          );
+        })()}
       </g>
     </svg>
   );
