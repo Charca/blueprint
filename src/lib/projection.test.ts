@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CELL, ISO_X, ISO_Y, depth, planeMatrix, project, rotateGrid, unproject, unrotateGrid,
+  CELL, ISO_X, ISO_Y, depth, planeMatrix, readablePlaneMatrix, project, rotateGrid, unproject, unrotateGrid,
 } from './projection';
 import type { Rotation, ViewState } from './projection';
 
@@ -60,5 +60,15 @@ describe('projection', () => {
     expect(d * CELL).toBeCloseTo(ISO_Y, 4);
     expect(e).toBe(0);
     expect(f).toBe(0);
+  });
+
+  it('readablePlaneMatrix never points the x-basis leftward', () => {
+    for (const mode of ['iso', 'top'] as const) {
+      for (const rotation of [0, 1, 2, 3] as Rotation[]) {
+        const m = readablePlaneMatrix({ x: 0, y: 0 }, { rotation, mode });
+        const a = Number(m.slice(7, -1).split(' ')[0]);
+        expect(a).toBeGreaterThanOrEqual(0);
+      }
+    }
   });
 });

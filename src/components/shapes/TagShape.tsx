@@ -1,6 +1,6 @@
 import { icons } from 'lucide-react';
 import { hexToHsl } from '../../lib/color';
-import { planeMatrix, project } from '../../lib/projection';
+import { readablePlaneMatrix, project } from '../../lib/projection';
 import type { TagEl } from '../../model/types';
 import type { ShapeProps } from './AssetShape';
 
@@ -35,7 +35,7 @@ export function TagShape({ el, view, selected, onPointerDown, onDoubleClick }: S
   const w = el.text.length * 8 + (Icon ? 46 : 28);
   const h = 28;
   const transform = view.mode === 'iso'
-    ? planeMatrix({ x: el.gridX, y: el.gridY }, view)
+    ? readablePlaneMatrix({ x: el.gridX, y: el.gridY }, view)
     : `translate(${pt.x} ${pt.y})`;
 
   return (

@@ -50,3 +50,17 @@ export function planeMatrix(corner: Point, view: ViewState): string {
   const c = (v.x - o.x) / CELL, d = (v.y - o.y) / CELL;
   return `matrix(${a} ${b} ${c} ${d} ${o.x} ${o.y})`;
 }
+
+/** planeMatrix variant for plane-skewed labels: flips the frame 180° when the
+ * projected x-basis points leftward, so text stays readable at every rotation. */
+export function readablePlaneMatrix(corner: Point, view: ViewState): string {
+  const o = project(corner, view);
+  const u = project({ x: corner.x + 1, y: corner.y }, view);
+  const v = project({ x: corner.x, y: corner.y + 1 }, view);
+  let a = (u.x - o.x) / CELL, b = (u.y - o.y) / CELL;
+  let c = (v.x - o.x) / CELL, d = (v.y - o.y) / CELL;
+  if (a < 0) {
+    a = -a; b = -b; c = -c; d = -d;
+  }
+  return `matrix(${a} ${b} ${c} ${d} ${o.x} ${o.y})`;
+}
