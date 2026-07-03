@@ -1,8 +1,7 @@
 # Blueprint
 
 Local-first isometric architecture diagramming. Excalidraw-style editing,
-GT Diagram Kit isometric artwork, one diagram model with isometric (4
-orientations) and top-down projections.
+GT Diagram Kit isometric artwork, one diagram model rendered in isometric projection.
 
 ## Run
 
@@ -21,8 +20,7 @@ them in `assets/graphics/`, then:
 
     npm run assets
 
-Names come from filenames (`cube-server.svg` → "Cube Server"). Map a
-top-view icon in `src/lib/topIcons.ts` (defaults to a box).
+Names come from filenames (`cube-server.svg` → "Cube Server"). Shapes can carry a customizable label (double-click a shape to edit it inline).
 
 ## How color works
 
