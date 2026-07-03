@@ -24,6 +24,20 @@ describe('export/svg', () => {
     expect(contentBounds([], doc.view)).toEqual({ minX: -400, minY: -300, width: 800, height: 600 });
   });
 
+  it('bounds cover the callout card body below its anchor', () => {
+    const callout: Doc = {
+      ...doc,
+      elements: [{
+        kind: 'text', id: 'x1', gridX: 0, gridY: 0, title: 'Title',
+        content: 'This is a short piece of text that can be described in concise language.',
+        variant: 'callout',
+      }],
+    };
+    const b = contentBounds(callout.elements, callout.view);
+    expect(b.minY + b.height).toBeGreaterThanOrEqual(150 + 80);
+    expect(b.minX).toBeLessThanOrEqual(-130 - 80);
+  });
+
   it('buildSvg emits a standalone recolored SVG', () => {
     const svg = buildSvg(doc);
     expect(svg).toContain('xmlns="http://www.w3.org/2000/svg"');

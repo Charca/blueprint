@@ -18,7 +18,12 @@ export function contentBounds(elements: Element[], view: ViewState): Bounds {
       }
     } else {
       const a = anchorOf(el);
-      if (a) pts.push(project(a, view));
+      if (!a) continue;
+      const pt = project(a, view);
+      pts.push(pt);
+      if (el.kind === 'text') {
+        pts.push({ x: pt.x - 130, y: pt.y }, { x: pt.x + 130, y: pt.y + 150 });
+      }
     }
   }
   if (pts.length === 0) return { minX: -400, minY: -300, width: 800, height: 600 };
