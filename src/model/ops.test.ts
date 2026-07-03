@@ -117,7 +117,7 @@ describe('ops', () => {
 
   it('setLabel ignores unsupported kinds', () => {
     const els: Element[] = [conn('c', 'a', 'b')];
-    expect(setLabel(els, 'c', 'X')).toEqual(els);
+    expect(setLabel(els, 'c', 'X')).toBe(els);
   });
 
   it('duplicateElements carries labels', () => {
