@@ -1,5 +1,7 @@
-import { ArrowLeft, Redo2, RotateCcw, RotateCw, Spline, Undo2 } from 'lucide-react';
+import { ArrowLeft, FileCode2, ImageDown, Redo2, RotateCcw, RotateCw, Spline, Undo2 } from 'lucide-react';
 import type { Rotation } from '../lib/projection';
+import { buildSvg } from '../export/svg';
+import { download, svgToPngBlob } from '../export/png';
 import { useAppStore } from '../store/appStore';
 import { useDocStore } from '../store/docStore';
 
@@ -54,6 +56,15 @@ export function TopBar() {
           onClick={() => setView({ ...view, mode: 'top' })}
         >Top</button>
       </div>
+      <div className="bp-divider" />
+      <button className="bp-icon-btn" title="Export SVG"
+        onClick={() => download(`${doc.name}.svg`, new Blob([buildSvg(doc)], { type: 'image/svg+xml' }))}>
+        <FileCode2 size={16} />
+      </button>
+      <button className="bp-icon-btn" title="Export PNG"
+        onClick={() => { void svgToPngBlob(buildSvg(doc)).then((b) => download(`${doc.name}.png`, b)); }}>
+        <ImageDown size={16} />
+      </button>
     </div>
   );
 }
