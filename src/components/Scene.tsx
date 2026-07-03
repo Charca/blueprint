@@ -5,6 +5,7 @@ import { anchorOf } from '../model/ops';
 import type { Element } from '../model/types';
 import { AssetShape } from './shapes/AssetShape';
 import { ConnectorShape } from './shapes/ConnectorShape';
+import { FloorShape } from './shapes/FloorShape';
 
 export interface SceneProps {
   elements: Element[];
@@ -28,6 +29,9 @@ export function Scene({
   };
   return (
     <>
+      {elements.filter((e) => e.kind === 'floor').map((el) => (
+        <FloorShape key={el.id} el={el} selected={selection?.has(el.id)} {...shared} />
+      ))}
       {elements.filter((e) => e.kind === 'connector').map((el) => (
         <ConnectorShape key={el.id} el={el} elements={elements}
           selected={selection?.has(el.id)} {...shared} />
