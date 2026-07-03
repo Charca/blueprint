@@ -99,7 +99,11 @@ export function CanvasView() {
   const onElementPointerDown = (e: React.PointerEvent, id: string) => {
     const s = useDocStore.getState();
     e.stopPropagation();
-    svgRef.current!.setPointerCapture(e.pointerId);
+    // Capture on the element itself, NOT the svg: pointer capture retargets
+    // the compatibility mouse events (click/dblclick) to the capture target,
+    // so capturing on the svg suppresses element double-clicks entirely.
+    // Moves/ups still bubble up to the svg's handlers.
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
     if (s.placing) {
       const cell = cellAt(e);
       s.apply((els) => addElement(els, createFromPlacing(s.placing!, cell)));

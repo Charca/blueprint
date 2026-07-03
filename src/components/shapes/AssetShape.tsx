@@ -27,13 +27,18 @@ function AssetLabelView({ label }: { label: AssetLabel }) {
   }
   const w = label.text.length * 8 + 28;
   const dark = hexToHsl(label.color).l <= 0.7;
+  // Kit-style placement: the pill's inner end anchors near the shape's base
+  // vertex and the pill extends outward along its axis per orientation.
+  const shift = (w / 2 + 10) * (label.orientation === 'right' ? 1 : -1);
   return (
     <g transform={labelPlaneMatrix(LABEL_ANCHOR, label.orientation)}>
-      <rect x={-w / 2} y={-14} width={w} height={28} rx={14} fill={label.color} />
-      <text y={4.5} textAnchor="middle" fontSize={13} fontWeight={700}
-        fill={dark ? '#ffffff' : '#2a3242'}>
-        {label.text}
-      </text>
+      <g transform={`translate(${shift} 0)`}>
+        <rect x={-w / 2} y={-14} width={w} height={28} rx={14} fill={label.color} />
+        <text y={4.5} textAnchor="middle" fontSize={13} fontWeight={700}
+          fill={dark ? '#ffffff' : '#2a3242'}>
+          {label.text}
+        </text>
+      </g>
     </g>
   );
 }
