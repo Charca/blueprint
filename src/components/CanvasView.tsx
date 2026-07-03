@@ -93,9 +93,9 @@ export function CanvasView() {
   }, []);
 
   if (!doc) return null;
-  const s = useDocStore.getState();
 
   const onElementPointerDown = (e: React.PointerEvent, id: string) => {
+    const s = useDocStore.getState();
     e.stopPropagation();
     svgRef.current!.setPointerCapture(e.pointerId);
     if (placing) return;
@@ -127,6 +127,7 @@ export function CanvasView() {
   };
 
   const onElementDoubleClick = (id: string) => {
+    const s = useDocStore.getState();
     const el = doc.elements.find((x) => x.id === id);
     if (!el) return;
     if (el.kind === 'connector') {
@@ -140,6 +141,7 @@ export function CanvasView() {
       ref={svgRef}
       className="bp-canvas"
       onPointerDown={(e) => {
+        const s = useDocStore.getState();
         (e.currentTarget as SVGSVGElement).setPointerCapture(e.pointerId);
         if (placing) {
           const cell = cellAt(e);
@@ -151,6 +153,7 @@ export function CanvasView() {
         setDrag({ kind: 'pan', sx: e.clientX, sy: e.clientY, cx: cam.x, cy: cam.y });
       }}
       onPointerMove={(e) => {
+        const s = useDocStore.getState();
         if (placing) { setHoverCell(cellAt(e)); return; }
         if (!drag) return;
         if (drag.kind === 'pan') {
@@ -164,6 +167,7 @@ export function CanvasView() {
         }
       }}
       onPointerUp={() => {
+        const s = useDocStore.getState();
         if (drag?.kind === 'move') s.commitTransient();
         setDrag(null);
       }}
