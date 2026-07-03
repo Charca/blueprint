@@ -1,5 +1,7 @@
+import { memo } from 'react';
 import type { PointerEvent } from 'react';
 import { ASSETS } from '../../generated/assets';
+import type { AssetDef } from '../../generated/assets';
 import { instanceMarkup } from '../../lib/assetInstance';
 import { hexToHsl } from '../../lib/color';
 import { labelPlaneMatrix, project } from '../../lib/projection';
@@ -16,6 +18,16 @@ export interface ShapeProps<T> {
 
 const LABEL_ANCHOR = { x: 60, y: 129 }; // artwork coords: base vertex + 44px
 
+// Memoized so re-renders (selection, drag) never re-commit the innerHTML:
+// React 19 rewrites dangerouslySetInnerHTML on every commit even when the
+// markup is identical, which discards the pressed DOM node mid-gesture and
+// suppresses the browser's click/dblclick synthesis.
+const ArtworkGlyph = memo(function ArtworkGlyph({
+  def, instanceId, color,
+}: { def: AssetDef; instanceId: string; color: string }) {
+  return <g dangerouslySetInnerHTML={{ __html: instanceMarkup(def, instanceId, color) }} />;
+});
+
 function AssetLabelView({ label }: { label: AssetLabel }) {
   if (label.style === 'text') {
     return (
@@ -27,9 +39,10 @@ function AssetLabelView({ label }: { label: AssetLabel }) {
   }
   const w = label.text.length * 8 + 28;
   const dark = hexToHsl(label.color).l <= 0.7;
-  // Kit-style placement: the pill's inner end anchors near the shape's base
-  // vertex and the pill extends outward along its axis per orientation.
-  const shift = (w / 2 + 10) * (label.orientation === 'right' ? 1 : -1);
+  // Tuck the pill alongside the shape's near base edge: 'right' runs up-left
+  // along the front-left edge, 'left' runs up-right along the front-right
+  // edge, with the inner tip just below the base vertex (kit reference).
+  const shift = (w / 2 + 10) * (label.orientation === 'right' ? -1 : 1);
   return (
     <g transform={labelPlaneMatrix(LABEL_ANCHOR, label.orientation)}>
       <g transform={`translate(${shift} 0)`}>
@@ -54,7 +67,7 @@ export function AssetShape({ el, view, selected, onPointerDown, onDoubleClick }:
       onDoubleClick={() => onDoubleClick?.(el.id)}
       style={onPointerDown ? { cursor: 'move' } : undefined}
     >
-      <g dangerouslySetInnerHTML={{ __html: instanceMarkup(def, el.id, el.color) }} />
+      <ArtworkGlyph def={def} instanceId={el.id} color={el.color} />
       {el.label && <AssetLabelView label={el.label} />}
       {selected && (
         <rect x={2} y={-4} width={116} height={124} rx={10}
