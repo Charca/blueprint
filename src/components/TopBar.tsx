@@ -1,5 +1,4 @@
-import { ArrowLeft, FileCode2, ImageDown, Redo2, RotateCcw, RotateCw, Spline, Undo2 } from 'lucide-react';
-import type { Rotation } from '../lib/projection';
+import { ArrowLeft, FileCode2, ImageDown, Redo2, Spline, Undo2 } from 'lucide-react';
 import { buildSvg } from '../export/svg';
 import { download, svgToPngBlob } from '../export/png';
 import { useAppStore } from '../store/appStore';
@@ -8,16 +7,12 @@ import { useDocStore } from '../store/docStore';
 export function TopBar() {
   const doc = useDocStore((s) => s.doc);
   const setName = useDocStore((s) => s.setName);
-  const setView = useDocStore((s) => s.setView);
   const undo = useDocStore((s) => s.undo);
   const redo = useDocStore((s) => s.redo);
   const tool = useDocStore((s) => s.tool);
   const setTool = useDocStore((s) => s.setTool);
   const goHome = useAppStore((s) => s.goHome);
   if (!doc) return null;
-  const { view } = doc;
-  const rotate = (steps: number) =>
-    setView({ ...view, rotation: (((view.rotation + steps) % 4) + 4) % 4 as Rotation });
 
   return (
     <div className="bp-topbar">
@@ -39,23 +34,6 @@ export function TopBar() {
       >
         <Spline size={16} />
       </button>
-      <div className="bp-divider" />
-      <button className="bp-icon-btn" title="Rotate left" onClick={() => rotate(-1)}>
-        <RotateCcw size={16} />
-      </button>
-      <button className="bp-icon-btn" title="Rotate right" onClick={() => rotate(1)}>
-        <RotateCw size={16} />
-      </button>
-      <div className="bp-seg">
-        <button
-          className={view.mode === 'iso' ? 'bp-seg-active' : ''}
-          onClick={() => setView({ ...view, mode: 'iso' })}
-        >Iso</button>
-        <button
-          className={view.mode === 'top' ? 'bp-seg-active' : ''}
-          onClick={() => setView({ ...view, mode: 'top' })}
-        >Top</button>
-      </div>
       <div className="bp-divider" />
       <button className="bp-icon-btn" title="Export SVG"
         onClick={() => download(`${doc.name}.svg`, new Blob([buildSvg(doc)], { type: 'image/svg+xml' }))}>
