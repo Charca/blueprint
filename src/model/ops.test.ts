@@ -71,4 +71,20 @@ describe('ops', () => {
     expect(createFromPlacing('text:callout', { x: 0, y: 0 })).toMatchObject({ kind: 'text', variant: 'callout' });
     expect(createFromPlacing('text:plain', { x: 0, y: 0 })).toMatchObject({ kind: 'text', variant: 'plain' });
   });
+
+  it('delete cascade is transitive regardless of array order', () => {
+    const tag: TagEl = { kind: 'tag', id: 't', attachedTo: 'c', gridX: 0, gridY: 0, text: 'x', color: '#fff', style: 'bubble' };
+    const els: Element[] = [tag, asset('a'), asset('b'), conn('c', 'a', 'b')];
+    expect(deleteElements(els, ['a']).map((e) => e.id)).toEqual(['b']);
+  });
+
+  it('duplicateElements remaps tag attachments within the duplicated set', () => {
+    const tag: TagEl = { kind: 'tag', id: 't', attachedTo: 'a', gridX: 0, gridY: 0, text: 'x', color: '#fff', style: 'bubble' };
+    const els: Element[] = [asset('a'), tag];
+    const { elements } = duplicateElements(els, ['a', 't']);
+    const clones = elements.slice(2);
+    const cloneTag = clones.find((e) => e.kind === 'tag') as TagEl;
+    const cloneAsset = clones.find((e) => e.kind === 'asset')!;
+    expect(cloneTag.attachedTo).toBe(cloneAsset.id);
+  });
 });

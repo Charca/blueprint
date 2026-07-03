@@ -17,9 +17,19 @@ export function moveElements(els: Element[], ids: string[], dx: number, dy: numb
 
 export function deleteElements(els: Element[], ids: string[]): Element[] {
   const dead = new Set(ids);
-  for (const el of els) {
-    if (el.kind === 'connector' && (dead.has(el.fromId) || dead.has(el.toId))) dead.add(el.id);
-    if (el.kind === 'tag' && el.attachedTo && dead.has(el.attachedTo)) dead.add(el.id);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const el of els) {
+      if (dead.has(el.id)) continue;
+      const cascades =
+        (el.kind === 'connector' && (dead.has(el.fromId) || dead.has(el.toId))) ||
+        (el.kind === 'tag' && el.attachedTo !== undefined && dead.has(el.attachedTo));
+      if (cascades) {
+        dead.add(el.id);
+        grew = true;
+      }
+    }
   }
   return els.filter((el) => !dead.has(el.id));
 }
