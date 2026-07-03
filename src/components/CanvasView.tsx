@@ -1,19 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
 import { unproject } from '../lib/projection';
 import type { Point } from '../lib/projection';
+import {
+  addElement, createFromPlacing, deleteElements, duplicateElements, moveElements,
+} from '../model/ops';
 import { useDocStore } from '../store/docStore';
 import { Grid } from './Grid';
 import { Scene } from './Scene';
 
 interface PanDrag { kind: 'pan'; sx: number; sy: number; cx: number; cy: number }
-type Drag = PanDrag;
+interface MoveDrag { kind: 'move'; last: Point; ids: string[]; moved: boolean }
+type Drag = PanDrag | MoveDrag;
 
 export function CanvasView() {
   const doc = useDocStore((s) => s.doc);
   const selection = useDocStore((s) => s.selection);
-  const setCamera = useDocStore((s) => s.setCamera);
+  const placing = useDocStore((s) => s.placing);
   const svgRef = useRef<SVGSVGElement>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
+  const [hoverCell, setHoverCell] = useState<Point | null>(null);
 
   const cam = doc?.camera ?? { x: 0, y: 0, zoom: 1 };
 
@@ -49,9 +54,60 @@ export function CanvasView() {
     return () => svg.removeEventListener('wheel', onWheel);
   }, []);
 
-  if (!doc) return null;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+      const s = useDocStore.getState();
+      const meta = e.metaKey || e.ctrlKey;
+      if (meta && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) s.redo(); else s.undo();
+      } else if (meta && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        if (s.selection.length) {
+          let created: string[] = [];
+          s.apply((els) => {
+            const r = duplicateElements(els, s.selection);
+            created = r.newIds;
+            return r.elements;
+          });
+          s.select(created);
+        }
+      } else if (e.key === 'Backspace' || e.key === 'Delete') {
+        if (s.selection.length) {
+          e.preventDefault();
+          s.apply((els) => deleteElements(els, s.selection));
+          s.select([]);
+        }
+      } else if (e.key === 'Escape') {
+        s.setPlacing(null);
+        s.setTool('select');
+        s.select([]);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
-  void cellAt;
+  if (!doc) return null;
+  const s = useDocStore.getState();
+
+  const onElementPointerDown = (e: React.PointerEvent, id: string) => {
+    e.stopPropagation();
+    svgRef.current!.setPointerCapture(e.pointerId);
+    if (placing) return;
+    const el = doc.elements.find((x) => x.id === id);
+    if (!el) return;
+    const next = e.shiftKey
+      ? selection.includes(id) ? selection.filter((x) => x !== id) : [...selection, id]
+      : selection.includes(id) ? selection : [id];
+    s.select(next);
+    if (el.kind !== 'connector') {
+      s.beginTransient();
+      setDrag({ kind: 'move', last: cellAt(e), ids: next.length ? next : [id], moved: false });
+    }
+  };
 
   return (
     <svg
@@ -59,18 +115,46 @@ export function CanvasView() {
       className="bp-canvas"
       onPointerDown={(e) => {
         (e.currentTarget as SVGSVGElement).setPointerCapture(e.pointerId);
+        if (placing) {
+          const cell = cellAt(e);
+          s.apply((els) => addElement(els, createFromPlacing(placing, cell)));
+          if (!e.shiftKey) s.setPlacing(null);
+          return;
+        }
+        s.select([]);
         setDrag({ kind: 'pan', sx: e.clientX, sy: e.clientY, cx: cam.x, cy: cam.y });
       }}
       onPointerMove={(e) => {
-        if (drag?.kind === 'pan') {
-          setCamera({ ...cam, x: drag.cx + e.clientX - drag.sx, y: drag.cy + e.clientY - drag.sy });
+        if (placing) { setHoverCell(cellAt(e)); return; }
+        if (!drag) return;
+        if (drag.kind === 'pan') {
+          s.setCamera({ ...cam, x: drag.cx + e.clientX - drag.sx, y: drag.cy + e.clientY - drag.sy });
+        } else {
+          const c = cellAt(e);
+          if (c.x !== drag.last.x || c.y !== drag.last.y) {
+            s.applyTransient((els) => moveElements(els, drag.ids, c.x - drag.last.x, c.y - drag.last.y));
+            setDrag({ ...drag, last: c, moved: true });
+          }
         }
       }}
-      onPointerUp={() => setDrag(null)}
+      onPointerUp={() => {
+        if (drag?.kind === 'move') s.commitTransient();
+        setDrag(null);
+      }}
     >
       <g transform={`translate(${cam.x} ${cam.y}) scale(${cam.zoom})`}>
         <Grid view={doc.view} />
-        <Scene elements={doc.elements} view={doc.view} selection={new Set(selection)} />
+        <Scene
+          elements={doc.elements}
+          view={doc.view}
+          selection={new Set(selection)}
+          onElementPointerDown={onElementPointerDown}
+          ghost={placing && hoverCell ? (
+            <g opacity={0.5} style={{ pointerEvents: 'none' }}>
+              <Scene elements={[createFromPlacing(placing, hoverCell)]} view={doc.view} />
+            </g>
+          ) : null}
+        />
       </g>
     </svg>
   );

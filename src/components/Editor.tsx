@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useDocStore } from '../store/docStore';
 import { CanvasView } from './CanvasView';
+import { Palette } from './Palette';
 
 export function Editor({ docId }: { docId: string }) {
   const doc = useDocStore((s) => s.doc);
@@ -18,6 +19,7 @@ export function Editor({ docId }: { docId: string }) {
     <div className="bp-editor">
       <div className="bp-topbar">{doc.name}</div>
       <div className="bp-body">
+        <Palette />
         <CanvasView />
       </div>
     </div>
