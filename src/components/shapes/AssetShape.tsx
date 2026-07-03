@@ -39,17 +39,18 @@ function AssetLabelView({ label }: { label: AssetLabel }) {
   }
   const w = label.text.length * 8 + 28;
   const dark = hexToHsl(label.color).l <= 0.7;
-  // Tuck the pill alongside the shape's near base edge: 'right' runs up-left
-  // along the front-left edge, 'left' runs up-right along the front-right
-  // edge, with the inner tip just below the base vertex (kit reference).
-  const shift = (w / 2 + 10) * (label.orientation === 'right' ? -1 : 1);
-  // Breathing room: nudge the pill along the screen-space perpendicular,
-  // away from the shape.
-  const away = label.orientation === 'right' ? { x: -5, y: 8.7 } : { x: 5, y: 8.7 };
+  // `orientation` names the SIDE of the shape the pill sits on. The pill
+  // lies along that side's base edge (left side: down-right axis; right
+  // side: up-right axis), tucked with its inner tip near the base vertex,
+  // then nudged a few px along the screen-space perpendicular for air.
+  const dir = label.orientation === 'right' ? 1 : -1;
+  const axis = label.orientation === 'left' ? 'right' : 'left'; // labelPlaneMatrix's text-tilt axis
+  const shift = (w / 2 + 10) * dir;
+  const away = { x: 5 * dir, y: 8.7 };
   return (
     <g transform={`translate(${away.x} ${away.y})`}
       style={{ filter: 'drop-shadow(0 2px 3px rgba(29, 36, 51, 0.28))' }}>
-      <g transform={labelPlaneMatrix(LABEL_ANCHOR, label.orientation)}>
+      <g transform={labelPlaneMatrix(LABEL_ANCHOR, axis)}>
         <g transform={`translate(${shift} 0)`}>
           <rect x={-w / 2 - 3} y={-17} width={w + 6} height={34} rx={17} fill="#ffffff" />
           <rect x={-w / 2} y={-14} width={w} height={28} rx={14} fill={label.color} />
