@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Doc } from '../model/types';
 import { buildSvg, contentBounds } from './svg';
+import { wrapText } from '../lib/wrap';
 
 const doc: Doc = {
   id: 'd1', name: 'T', schemaVersion: 1,
@@ -24,17 +25,19 @@ describe('export/svg', () => {
     expect(contentBounds([], doc.view)).toEqual({ minX: -400, minY: -300, width: 800, height: 600 });
   });
 
-  it('bounds cover the callout card body below its anchor', () => {
+  it('bounds scale with the callout card height', () => {
+    const long = 'word '.repeat(60).trim();
     const callout: Doc = {
       ...doc,
       elements: [{
         kind: 'text', id: 'x1', gridX: 0, gridY: 0, title: 'Title',
-        content: 'This is a short piece of text that can be described in concise language.',
-        variant: 'callout',
+        content: long, variant: 'callout',
       }],
     };
+    const cardH = 20 + 24 + wrapText(long, 34).length * 18;
+    expect(cardH).toBeGreaterThan(150); // this case clipped under the old flat constant
     const b = contentBounds(callout.elements, callout.view);
-    expect(b.minY + b.height).toBeGreaterThanOrEqual(150 + 80);
+    expect(b.minY + b.height).toBeGreaterThanOrEqual(cardH + 10 + 80);
     expect(b.minX).toBeLessThanOrEqual(-130 - 80);
   });
 

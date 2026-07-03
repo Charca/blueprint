@@ -4,6 +4,7 @@ import type { ViewState } from '../lib/projection';
 import { anchorOf } from '../model/ops';
 import type { Doc, Element } from '../model/types';
 import { Scene } from '../components/Scene';
+import { wrapText } from '../lib/wrap';
 
 const PAD = 80;
 
@@ -22,7 +23,8 @@ export function contentBounds(elements: Element[], view: ViewState): Bounds {
       const pt = project(a, view);
       pts.push(pt);
       if (el.kind === 'text') {
-        pts.push({ x: pt.x - 130, y: pt.y }, { x: pt.x + 130, y: pt.y + 150 });
+        const cardH = 20 + (el.title ? 24 : 0) + wrapText(el.content, 34).length * 18;
+        pts.push({ x: pt.x - 130, y: pt.y }, { x: pt.x + 130, y: pt.y + cardH + 10 });
       }
     }
   }
