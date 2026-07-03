@@ -53,7 +53,8 @@ export function loadDoc(id: string): Doc | null {
   const raw = localStorage.getItem(docKey(id));
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as Doc;
+    const doc = JSON.parse(raw) as Doc;
+    return { ...doc, view: { rotation: 0, mode: 'iso' } };
   } catch {
     return null;
   }

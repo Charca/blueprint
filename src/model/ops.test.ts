@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { AssetEl, ConnectorEl, Element, TagEl } from './types';
 import {
   addElement, anchorOf, createFromPlacing, deleteElements, duplicateElements,
-  moveElements, updateElement,
+  moveElements, updateElement, setAssetLabel,
 } from './ops';
 
 const asset = (id: string, x = 0, y = 0): AssetEl =>
@@ -86,5 +86,39 @@ describe('ops', () => {
     const cloneTag = clones.find((e) => e.kind === 'tag') as TagEl;
     const cloneAsset = clones.find((e) => e.kind === 'asset')!;
     expect(cloneTag.attachedTo).toBe(cloneAsset.id);
+  });
+
+  it('setAssetLabel creates with defaults, updates text, and removes on empty', () => {
+    let els: Element[] = [asset('a')];
+    els = setAssetLabel(els, 'a', 'API');
+    expect((els[0] as AssetEl).label).toEqual({
+      text: 'API', style: 'text', color: '#2A3242', orientation: 'right',
+    });
+    els = updateElement(els, 'a', {
+      label: { ...(els[0] as AssetEl).label!, style: 'tag' as const },
+    });
+    els = setAssetLabel(els, 'a', '  API v2  ');
+    expect((els[0] as AssetEl).label).toMatchObject({ text: 'API v2', style: 'tag' });
+    els = setAssetLabel(els, 'a', '   ');
+    expect((els[0] as AssetEl).label).toBeUndefined();
+  });
+
+  it('setAssetLabel ignores non-asset elements', () => {
+    const els: Element[] = [conn('c', 'a', 'b')];
+    expect(setAssetLabel(els, 'c', 'X')).toEqual(els);
+  });
+
+  it('duplicateElements carries labels', () => {
+    const labeled = setAssetLabel([asset('a')], 'a', 'DB');
+    const { elements } = duplicateElements(labeled, ['a']);
+    expect((elements[1] as AssetEl).label?.text).toBe('DB');
+  });
+
+  it('setAssetLabel returns the same array when nothing changes', () => {
+    const els = setAssetLabel([asset('a')], 'a', 'DB');
+    expect(setAssetLabel(els, 'a', 'DB')).toBe(els);
+    expect(setAssetLabel(els, 'a', '  DB ')).toBe(els);
+    const unlabeled: Element[] = [asset('b')];
+    expect(setAssetLabel(unlabeled, 'b', '   ')).toBe(unlabeled);
   });
 });

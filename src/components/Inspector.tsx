@@ -1,7 +1,7 @@
 import { Trash2 } from 'lucide-react';
 import { PRESETS } from '../lib/color';
-import { deleteElements, updateElement } from '../model/ops';
-import type { ConnectorEl, FloorEl, TagEl } from '../model/types';
+import { deleteElements, setAssetLabel, updateElement } from '../model/ops';
+import type { AssetEl, AssetLabel, ConnectorEl, FloorEl, TagEl } from '../model/types';
 import { useDocStore } from '../store/docStore';
 
 export function Inspector() {
@@ -34,6 +34,23 @@ export function Inspector() {
             title="Custom color"
           />
         </div>
+      )}
+      {single?.kind === 'asset' && (
+        <LabelControls
+          el={single}
+          onText={(text) => apply((els) => setAssetLabel(els, single.id, text))}
+          onPatch={(patch) => {
+            const current = single.label;
+            if (!current) return;
+            if (Object.entries(patch).every(
+              ([k, v]) => current[k as keyof AssetLabel] === v,
+            )) return;
+            apply((els) => els.map((e) =>
+              e.id === single.id && e.kind === 'asset' && e.label
+                ? { ...e, label: { ...e.label, ...patch } }
+                : e));
+          }}
+        />
       )}
       {single?.kind === 'floor' && (
         <FloorControls el={single} onPatch={(patch) => apply((els) => updateElement(els, single.id, patch))} />
@@ -87,6 +104,61 @@ function FloorControls({ el, onPatch }: { el: FloorEl; onPatch: (p: Partial<Floo
             onClick={() => onPatch({ corners: c })}>{c}</button>
         ))}
       </div>
+    </>
+  );
+}
+
+function LabelControls({ el, onText, onPatch }: {
+  el: AssetEl;
+  onText: (text: string) => void;
+  onPatch: (patch: Partial<AssetLabel>) => void;
+}) {
+  const label = el.label;
+  return (
+    <>
+      <div className="bp-insp-section">Label</div>
+      <div className="bp-insp-row">
+        <input
+          key={`${el.id}:${label?.text ?? ''}`}
+          className="bp-insp-input"
+          placeholder="Add a label…"
+          defaultValue={label?.text ?? ''}
+          onBlur={(e) => onText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+          }}
+          maxLength={40}
+        />
+      </div>
+      {label && (
+        <>
+          <div className="bp-insp-row">
+            {(['text', 'tag'] as const).map((style) => (
+              <button key={style}
+                className={`bp-chip${label.style === style ? ' bp-active' : ''}`}
+                onClick={() => onPatch({ style })}>{style}</button>
+            ))}
+            {label.style === 'tag' && (['left', 'right'] as const).map((orientation) => (
+              <button key={orientation}
+                className={`bp-chip${label.orientation === orientation ? ' bp-active' : ''}`}
+                onClick={() => onPatch({ orientation })}>{orientation}</button>
+            ))}
+          </div>
+          <div className="bp-insp-row">
+            {Object.entries(PRESETS).map(([name, hex]) => (
+              <button key={name} title={`Label ${name}`} className="bp-swatch"
+                style={{ background: hex }} onClick={() => onPatch({ color: hex })} />
+            ))}
+            <input
+              type="color"
+              className="bp-swatch bp-swatch-custom"
+              value={label.color}
+              onChange={(e) => onPatch({ color: e.target.value })}
+              title="Label color"
+            />
+          </div>
+        </>
+      )}
     </>
   );
 }

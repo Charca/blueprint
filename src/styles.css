@@ -38,9 +38,6 @@ button { font: inherit; cursor: pointer; }
 .bp-name:hover, .bp-name:focus { border-color: #d4dae6; background: #fff; outline: none; }
 .bp-topbar-spacer { flex: 1; }
 .bp-divider { width: 1px; height: 20px; background: #e3e8f2; margin: 0 4px; }
-.bp-seg { display: flex; border: 1px solid #d4dae6; border-radius: 8px; overflow: hidden; margin-left: 6px; }
-.bp-seg button { border: none; background: #fff; padding: 6px 12px; font-size: 13px; }
-.bp-seg .bp-seg-active { background: #3479ff; color: #fff; }
 
 .bp-tool-active { background: #eaf1ff; color: #3479ff; }
 
@@ -55,3 +52,5 @@ button { font: inherit; cursor: pointer; }
 .bp-swatch-custom::-webkit-color-swatch-wrapper { opacity: 0; }
 .bp-chip { border: 1px solid #d4dae6; background: #fff; border-radius: 999px; padding: 4px 10px; font-size: 12px; }
 .bp-chip.bp-active { border-color: #3479ff; background: #eaf1ff; color: #3479ff; }
+.bp-label-editor { width: 100%; padding: 6px 10px; border: 2px dashed #7C5CFF; border-radius: 6px; background: #fff; font: 600 15px system-ui, -apple-system, sans-serif; text-align: center; color: #2a3242; outline: none; }
+.bp-insp-section { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: #8a93a6; margin-top: 2px; }

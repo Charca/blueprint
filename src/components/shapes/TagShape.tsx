@@ -39,7 +39,9 @@ export function TagShape({ el, view, selected, onPointerDown, onDoubleClick }: S
     : `translate(${pt.x} ${pt.y})`;
 
   return (
-    <g transform={transform} {...handlers} style={cursor}>
+    <g transform={transform} {...handlers}
+      style={{ ...cursor, filter: 'drop-shadow(0 2px 3px rgba(29, 36, 51, 0.28))' }}>
+      <rect x={-w / 2 - 3} y={-h / 2 - 3} width={w + 6} height={h + 6} rx={h / 2 + 3} fill="#ffffff" />
       <rect x={-w / 2} y={-h / 2} width={w} height={h} rx={h / 2} fill={el.color} />
       {Icon && <Icon x={-w / 2 + 10} y={-8} width={16} height={16} color={textFill} />}
       <text x={Icon ? 9 : 0} y={4.5} textAnchor="middle" fontSize={13} fontWeight={700}

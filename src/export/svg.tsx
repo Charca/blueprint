@@ -22,6 +22,10 @@ export function contentBounds(elements: Element[], view: ViewState): Bounds {
       if (!a) continue;
       const pt = project(a, view);
       pts.push(pt);
+      if (el.kind === 'asset' && el.label) {
+        const halfW = (el.label.text.length * 8 + 28) / 2 + 12;
+        pts.push({ x: pt.x - halfW, y: pt.y }, { x: pt.x + halfW, y: pt.y + 74 });
+      }
       if (el.kind === 'text') {
         const cardH = 20 + (el.title ? 24 : 0) + wrapText(el.content, 34).length * 18;
         pts.push({ x: pt.x - 130, y: pt.y }, { x: pt.x + 130, y: pt.y + cardH + 10 });

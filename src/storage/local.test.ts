@@ -44,4 +44,10 @@ describe('storage/local', () => {
     localStorage.setItem('blueprint:doc:bad', '{oops');
     expect(loadDoc('bad')).toBeNull();
   });
+
+  it('normalizes the saved view back to default iso on load', () => {
+    const doc = createDoc('V');
+    saveDoc({ ...doc, view: { rotation: 2, mode: 'top' } });
+    expect(loadDoc(doc.id)?.view).toEqual({ rotation: 0, mode: 'iso' });
+  });
 });

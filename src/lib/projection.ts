@@ -64,3 +64,13 @@ export function readablePlaneMatrix(corner: Point, view: ViewState): string {
   }
   return `matrix(${a} ${b} ${c} ${d} ${o.x} ${o.y})`;
 }
+
+/** Plane matrix for shape labels at the default orientation. `origin` is a
+ * point in the current user space (NOT a grid cell). `right` lays text along
+ * the down-right iso axis, `left` along the up-right axis. */
+export function labelPlaneMatrix(origin: Point, orientation: 'left' | 'right'): string {
+  const ux = Math.sqrt(3) / 2;
+  return orientation === 'right'
+    ? `matrix(${ux} 0.5 ${-ux} 0.5 ${origin.x} ${origin.y})`
+    : `matrix(${ux} -0.5 ${ux} 0.5 ${origin.x} ${origin.y})`;
+}
