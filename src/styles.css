@@ -21,3 +21,4 @@ button { font: inherit; cursor: pointer; }
 .bp-topbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #fff; border-bottom: 1px solid #e3e8f2; }
 .bp-body { display: flex; flex: 1; min-height: 0; }
 .bp-loading { padding: 40px; color: #8a93a6; }
+.bp-canvas { flex: 1; display: block; background: #fbfcfe; touch-action: none; user-select: none; }

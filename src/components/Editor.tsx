@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useDocStore } from '../store/docStore';
+import { CanvasView } from './CanvasView';
 
 export function Editor({ docId }: { docId: string }) {
   const doc = useDocStore((s) => s.doc);
@@ -16,7 +17,9 @@ export function Editor({ docId }: { docId: string }) {
   return (
     <div className="bp-editor">
       <div className="bp-topbar">{doc.name}</div>
-      <div className="bp-body" />
+      <div className="bp-body">
+        <CanvasView />
+      </div>
     </div>
   );
 }
