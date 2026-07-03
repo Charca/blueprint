@@ -39,10 +39,17 @@ export function Inspector() {
         <LabelControls
           el={single}
           onText={(text) => apply((els) => setAssetLabel(els, single.id, text))}
-          onPatch={(patch) => apply((els) => els.map((e) =>
-            e.id === single.id && e.kind === 'asset' && e.label
-              ? { ...e, label: { ...e.label, ...patch } }
-              : e))}
+          onPatch={(patch) => {
+            const current = single.label;
+            if (!current) return;
+            if (Object.entries(patch).every(
+              ([k, v]) => current[k as keyof AssetLabel] === v,
+            )) return;
+            apply((els) => els.map((e) =>
+              e.id === single.id && e.kind === 'asset' && e.label
+                ? { ...e, label: { ...e.label, ...patch } }
+                : e));
+          }}
         />
       )}
       {single?.kind === 'floor' && (
@@ -112,7 +119,7 @@ function LabelControls({ el, onText, onPatch }: {
       <div className="bp-insp-section">Label</div>
       <div className="bp-insp-row">
         <input
-          key={`${el.id}:${label ? 'y' : 'n'}`}
+          key={`${el.id}:${label?.text ?? ''}`}
           className="bp-insp-input"
           placeholder="Add a label…"
           defaultValue={label?.text ?? ''}
@@ -120,6 +127,7 @@ function LabelControls({ el, onText, onPatch }: {
           onKeyDown={(e) => {
             if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
           }}
+          maxLength={40}
         />
       </div>
       {label && (

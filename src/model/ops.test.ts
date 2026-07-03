@@ -113,4 +113,12 @@ describe('ops', () => {
     const { elements } = duplicateElements(labeled, ['a']);
     expect((elements[1] as AssetEl).label?.text).toBe('DB');
   });
+
+  it('setAssetLabel returns the same array when nothing changes', () => {
+    const els = setAssetLabel([asset('a')], 'a', 'DB');
+    expect(setAssetLabel(els, 'a', 'DB')).toBe(els);
+    expect(setAssetLabel(els, 'a', '  DB ')).toBe(els);
+    const unlabeled: Element[] = [asset('b')];
+    expect(setAssetLabel(unlabeled, 'b', '   ')).toBe(unlabeled);
+  });
 });

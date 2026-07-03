@@ -47,6 +47,7 @@ export function LabelEditor({ el, view, onCommit, onCancel }: LabelEditorProps) 
           if (e.key === 'Escape') cancel();
         }}
         onPointerDown={(e) => e.stopPropagation()}
+        maxLength={40}
       />
     </foreignObject>
   );

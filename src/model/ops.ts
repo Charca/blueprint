@@ -92,11 +92,15 @@ export function makeLabel(text: string): AssetLabel {
   return { text, style: 'text', color: DEFAULT_LABEL_COLOR, orientation: 'right' };
 }
 
-/** Create (with defaults), retext, or remove (empty text) an asset's label. */
+/** Create (with defaults), retext, or remove (empty text) an asset's label.
+ * Returns `els` unchanged (same reference) when nothing would change. */
 export function setAssetLabel(els: Element[], id: string, text: string): Element[] {
+  const target = els.find((el) => el.id === id);
+  if (!target || target.kind !== 'asset') return els;
+  const trimmed = text.trim();
+  if (trimmed === (target.label?.text ?? '')) return els;
   return els.map((el) => {
     if (el.id !== id || el.kind !== 'asset') return el;
-    const trimmed = text.trim();
     if (!trimmed) {
       const { label: _label, ...rest } = el;
       return rest;
