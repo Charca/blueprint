@@ -43,14 +43,21 @@ function AssetLabelView({ label }: { label: AssetLabel }) {
   // along the front-left edge, 'left' runs up-right along the front-right
   // edge, with the inner tip just below the base vertex (kit reference).
   const shift = (w / 2 + 10) * (label.orientation === 'right' ? -1 : 1);
+  // Breathing room: nudge the pill along the screen-space perpendicular,
+  // away from the shape.
+  const away = label.orientation === 'right' ? { x: -5, y: 8.7 } : { x: 5, y: 8.7 };
   return (
-    <g transform={labelPlaneMatrix(LABEL_ANCHOR, label.orientation)}>
-      <g transform={`translate(${shift} 0)`}>
-        <rect x={-w / 2} y={-14} width={w} height={28} rx={14} fill={label.color} />
-        <text y={4.5} textAnchor="middle" fontSize={13} fontWeight={700}
-          fill={dark ? '#ffffff' : '#2a3242'}>
-          {label.text}
-        </text>
+    <g transform={`translate(${away.x} ${away.y})`}
+      style={{ filter: 'drop-shadow(0 2px 3px rgba(29, 36, 51, 0.28))' }}>
+      <g transform={labelPlaneMatrix(LABEL_ANCHOR, label.orientation)}>
+        <g transform={`translate(${shift} 0)`}>
+          <rect x={-w / 2 - 3} y={-17} width={w + 6} height={34} rx={17} fill="#ffffff" />
+          <rect x={-w / 2} y={-14} width={w} height={28} rx={14} fill={label.color} />
+          <text y={4.5} textAnchor="middle" fontSize={13} fontWeight={700}
+            fill={dark ? '#ffffff' : '#2a3242'}>
+            {label.text}
+          </text>
+        </g>
       </g>
     </g>
   );
