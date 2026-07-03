@@ -3,7 +3,7 @@ import { unproject } from '../lib/projection';
 import type { Point } from '../lib/projection';
 import { uid } from '../lib/ids';
 import {
-  addElement, createFromPlacing, deleteElements, duplicateElements, moveElements, setAssetLabel, updateElement,
+  addElement, createFromPlacing, deleteElements, duplicateElements, moveElements, setLabel, updateElement,
 } from '../model/ops';
 import { useDocStore } from '../store/docStore';
 import { Grid } from './Grid';
@@ -225,7 +225,7 @@ export function CanvasView() {
               el={editing}
               view={doc.view}
               onCommit={(text) => {
-                useDocStore.getState().apply((els) => setAssetLabel(els, editing.id, text));
+                useDocStore.getState().apply((els) => setLabel(els, editing.id, text));
                 setLabelEditId(null);
               }}
               onCancel={() => setLabelEditId(null)}

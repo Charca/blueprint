@@ -1,6 +1,6 @@
 import { Trash2 } from 'lucide-react';
 import { PRESETS } from '../lib/color';
-import { deleteElements, setAssetLabel, updateElement } from '../model/ops';
+import { deleteElements, setLabel, updateElement } from '../model/ops';
 import type { AssetEl, AssetLabel, ConnectorEl, FloorEl, TagEl } from '../model/types';
 import { useDocStore } from '../store/docStore';
 
@@ -38,7 +38,7 @@ export function Inspector() {
       {single?.kind === 'asset' && (
         <LabelControls
           el={single}
-          onText={(text) => apply((els) => setAssetLabel(els, single.id, text))}
+          onText={(text) => apply((els) => setLabel(els, single.id, text))}
           onPatch={(patch) => {
             const current = single.label;
             if (!current) return;

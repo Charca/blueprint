@@ -11,19 +11,22 @@ export interface Doc {
   elements: Element[];
 }
 
-export interface AssetLabel {
+export interface Label {
   text: string;
   style: 'text' | 'tag';
   color: string;                  // text color for 'text', pill color for 'tag'
   orientation: 'left' | 'right';  // rendered only for 'tag'
 }
 
+/** Back-compat alias — labels are shared across asset and floor elements. */
+export type AssetLabel = Label;
+
 export interface AssetEl {
   kind: 'asset'; id: string;
   gridX: number; gridY: number;
   assetId: string;
   color: string;
-  label?: AssetLabel;
+  label?: Label;
 }
 
 export interface FloorEl {
@@ -32,6 +35,7 @@ export interface FloorEl {
   width: number; depth: number;
   corners: 'sharp' | 'rounded' | 'pill';
   color: string;
+  label?: Label;
 }
 
 export interface ConnectorEl {

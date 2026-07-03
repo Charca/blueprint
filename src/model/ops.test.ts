@@ -1,14 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import type { AssetEl, ConnectorEl, Element, TagEl } from './types';
+import type { AssetEl, ConnectorEl, Element, FloorEl, TagEl } from './types';
 import {
   addElement, anchorOf, createFromPlacing, deleteElements, duplicateElements,
-  moveElements, updateElement, setAssetLabel,
+  moveElements, updateElement, setLabel,
 } from './ops';
 
 const asset = (id: string, x = 0, y = 0): AssetEl =>
   ({ kind: 'asset', id, gridX: x, gridY: y, assetId: 'cube-plain', color: '#618AFF' });
 const conn = (id: string, fromId: string, toId: string): ConnectorEl =>
   ({ kind: 'connector', id, fromId, toId, style: 'solid', color: '#425066' });
+const floor = (id: string, x = 0, y = 0): FloorEl =>
+  ({ kind: 'floor', id, gridX: x, gridY: y, width: 4, depth: 3, corners: 'sharp', color: '#C9D2E3' });
 
 describe('ops', () => {
   it('addElement appends without mutating', () => {
@@ -88,37 +90,47 @@ describe('ops', () => {
     expect(cloneTag.attachedTo).toBe(cloneAsset.id);
   });
 
-  it('setAssetLabel creates with defaults, updates text, and removes on empty', () => {
+  it('setLabel creates with defaults (orientation left), updates text, and removes on empty', () => {
     let els: Element[] = [asset('a')];
-    els = setAssetLabel(els, 'a', 'API');
+    els = setLabel(els, 'a', 'API');
     expect((els[0] as AssetEl).label).toEqual({
-      text: 'API', style: 'text', color: '#2A3242', orientation: 'right',
+      text: 'API', style: 'text', color: '#2A3242', orientation: 'left',
     });
     els = updateElement(els, 'a', {
       label: { ...(els[0] as AssetEl).label!, style: 'tag' as const },
     });
-    els = setAssetLabel(els, 'a', '  API v2  ');
+    els = setLabel(els, 'a', '  API v2  ');
     expect((els[0] as AssetEl).label).toMatchObject({ text: 'API v2', style: 'tag' });
-    els = setAssetLabel(els, 'a', '   ');
+    els = setLabel(els, 'a', '   ');
     expect((els[0] as AssetEl).label).toBeUndefined();
   });
 
-  it('setAssetLabel ignores non-asset elements', () => {
+  it('setLabel applies to floor elements', () => {
+    let els: Element[] = [floor('f')];
+    els = setLabel(els, 'f', 'Zone A');
+    expect((els[0] as FloorEl).label).toMatchObject({
+      text: 'Zone A', style: 'text', orientation: 'left',
+    });
+    els = setLabel(els, 'f', '   ');
+    expect((els[0] as FloorEl).label).toBeUndefined();
+  });
+
+  it('setLabel ignores unsupported kinds', () => {
     const els: Element[] = [conn('c', 'a', 'b')];
-    expect(setAssetLabel(els, 'c', 'X')).toEqual(els);
+    expect(setLabel(els, 'c', 'X')).toEqual(els);
   });
 
   it('duplicateElements carries labels', () => {
-    const labeled = setAssetLabel([asset('a')], 'a', 'DB');
+    const labeled = setLabel([asset('a')], 'a', 'DB');
     const { elements } = duplicateElements(labeled, ['a']);
     expect((elements[1] as AssetEl).label?.text).toBe('DB');
   });
 
-  it('setAssetLabel returns the same array when nothing changes', () => {
-    const els = setAssetLabel([asset('a')], 'a', 'DB');
-    expect(setAssetLabel(els, 'a', 'DB')).toBe(els);
-    expect(setAssetLabel(els, 'a', '  DB ')).toBe(els);
+  it('setLabel returns the same array when nothing changes', () => {
+    const els = setLabel([asset('a')], 'a', 'DB');
+    expect(setLabel(els, 'a', 'DB')).toBe(els);
+    expect(setLabel(els, 'a', '  DB ')).toBe(els);
     const unlabeled: Element[] = [asset('b')];
-    expect(setAssetLabel(unlabeled, 'b', '   ')).toBe(unlabeled);
+    expect(setLabel(unlabeled, 'b', '   ')).toBe(unlabeled);
   });
 });
