@@ -6,6 +6,8 @@ import type { Element } from '../model/types';
 import { AssetShape } from './shapes/AssetShape';
 import { ConnectorShape } from './shapes/ConnectorShape';
 import { FloorShape } from './shapes/FloorShape';
+import { TagShape } from './shapes/TagShape';
+import { TextShape } from './shapes/TextShape';
 
 export interface SceneProps {
   elements: Element[];
@@ -38,6 +40,12 @@ export function Scene({
       ))}
       {assets.map((el) => (
         <AssetShape key={el.id} el={el} selected={selection?.has(el.id)} {...shared} />
+      ))}
+      {elements.filter((e) => e.kind === 'tag').map((el) => (
+        <TagShape key={el.id} el={el} selected={selection?.has(el.id)} {...shared} />
+      ))}
+      {elements.filter((e) => e.kind === 'text').map((el) => (
+        <TextShape key={el.id} el={el} selected={selection?.has(el.id)} {...shared} />
       ))}
       {ghost}
     </>

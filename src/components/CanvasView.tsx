@@ -134,6 +134,22 @@ export function CanvasView() {
       const label = window.prompt('Connector label (empty to remove)', el.label ?? '');
       if (label !== null) s.apply((els) => updateElement(els, id, { label: label || undefined }));
     }
+    if (el.kind === 'tag') {
+      const text = window.prompt('Tag text', el.text);
+      if (text) s.apply((els) => updateElement(els, id, { text }));
+    }
+    if (el.kind === 'text') {
+      if (el.variant === 'callout') {
+        const title = window.prompt('Title (empty to remove)', el.title ?? '');
+        if (title === null) return;
+        const content = window.prompt('Body', el.content);
+        if (content === null) return;
+        s.apply((els) => updateElement(els, id, { title: title || undefined, content }));
+      } else {
+        const content = window.prompt('Text', el.content);
+        if (content) s.apply((els) => updateElement(els, id, { content }));
+      }
+    }
   };
 
   return (

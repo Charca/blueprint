@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useDocStore } from '../store/docStore';
 import { CanvasView } from './CanvasView';
+import { Inspector } from './Inspector';
 import { Palette } from './Palette';
 import { TopBar } from './TopBar';
 
@@ -21,7 +22,10 @@ export function Editor({ docId }: { docId: string }) {
       <TopBar />
       <div className="bp-body">
         <Palette />
-        <CanvasView />
+        <div className="bp-canvas-wrap">
+          <CanvasView />
+          <Inspector />
+        </div>
       </div>
     </div>
   );
