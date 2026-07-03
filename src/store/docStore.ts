@@ -33,10 +33,23 @@ interface DocState {
 
 const HISTORY_CAP = 50;
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
+let pendingDoc: Doc | null = null;
 
 function persistSoon(doc: Doc): void {
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => saveDoc(doc), 300);
+  pendingDoc = doc;
+  saveTimer = setTimeout(() => {
+    pendingDoc = null;
+    saveDoc(doc);
+  }, 300);
+}
+
+function flushPendingSave(): void {
+  clearTimeout(saveTimer);
+  if (pendingDoc) {
+    saveDoc(pendingDoc);
+    pendingDoc = null;
+  }
 }
 
 export const useDocStore = create<DocState>((set, get) => ({
@@ -49,14 +62,18 @@ export const useDocStore = create<DocState>((set, get) => ({
   future: [],
   snapshot: null,
 
-  openDoc: (id) => set({
-    doc: loadDoc(id), selection: [], placing: null, tool: 'select',
-    connectFrom: null, past: [], future: [], snapshot: null,
-  }),
+  openDoc: (id) => {
+    flushPendingSave();
+    return set({
+      doc: loadDoc(id), selection: [], placing: null, tool: 'select',
+      connectFrom: null, past: [], future: [], snapshot: null,
+    });
+  },
 
   closeDoc: () => {
+    flushPendingSave();
     const { doc } = get();
-    if (doc) { clearTimeout(saveTimer); saveDoc(doc); }
+    if (doc) saveDoc(doc);
     set({ doc: null, selection: [], past: [], future: [], snapshot: null });
   },
 
