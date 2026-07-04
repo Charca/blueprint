@@ -84,4 +84,24 @@ describe('export/svg', () => {
     // not the shape — drives the horizontal bound outward.
     expect(bLabeled.width).toBeGreaterThan(bUnlabeled.width);
   });
+
+  it('uses auto-sized floor bounds for grouped children', () => {
+    const grouped: Doc = {
+      ...doc,
+      elements: [
+        {
+          kind: 'floor', id: 'f1', gridX: 0, gridY: 0, width: 1, depth: 1,
+          corners: 'sharp', color: '#D9E2EC',
+        },
+        {
+          kind: 'asset', id: 'a1', gridX: 5, gridY: 5, assetId: 'cube-plain',
+          color: '#E05252', parentId: 'f1',
+        },
+      ],
+    };
+    const floorOnly = contentBounds([grouped.elements[0]], grouped.view);
+    const withChild = contentBounds(grouped.elements, grouped.view);
+    expect(withChild.width).toBeGreaterThan(floorOnly.width);
+    expect(buildSvg(grouped)).toContain('width="150"');
+  });
 });

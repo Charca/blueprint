@@ -1,17 +1,21 @@
 import { CELL, planeMatrix, project } from '../../lib/projection';
 import { derivePalette } from '../../lib/color';
-import type { FloorEl } from '../../model/types';
+import { floorBounds } from '../../model/ops';
+import type { Element, FloorEl } from '../../model/types';
 import type { ShapeProps } from './AssetShape';
 import { LabelView } from './LabelView';
 
-export function FloorShape({ el, view, selected, onPointerDown, onDoubleClick }: ShapeProps<FloorEl>) {
-  const corner = { x: el.gridX - 0.5, y: el.gridY - 0.5 };
+export function FloorShape({
+  el, elements, view, selected, onPointerDown, onDoubleClick,
+}: ShapeProps<FloorEl> & { elements?: Element[] }) {
+  const bounds = elements ? floorBounds(elements, el) : el;
+  const corner = { x: bounds.gridX - 0.5, y: bounds.gridY - 0.5 };
   const m = planeMatrix(corner, view);
-  const w = el.width * CELL, d = el.depth * CELL;
+  const w = bounds.width * CELL, d = bounds.depth * CELL;
   const rx = el.corners === 'pill' ? Math.min(w, d) / 2 : el.corners === 'rounded' ? 18 : 0;
   const pal = derivePalette(el.color);
   const thickness = view.mode === 'iso' ? 6 : 0;
-  const center = project({ x: el.gridX + (el.width - 1) / 2, y: el.gridY + (el.depth - 1) / 2 }, view);
+  const center = project({ x: bounds.gridX + (bounds.width - 1) / 2, y: bounds.gridY + (bounds.depth - 1) / 2 }, view);
 
   return (
     <g

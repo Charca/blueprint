@@ -1,18 +1,123 @@
 import { PRESETS } from '../lib/color';
 import { uid } from '../lib/ids';
 import type { Point } from '../lib/projection';
-import type { Label, Element } from './types';
+import type { AssetEl, FloorEl, Label, Element, TagEl, TextEl } from './types';
+
+export type FloorChildEl = AssetEl | TagEl | TextEl;
+export interface FloorBounds { gridX: number; gridY: number; width: number; depth: number }
+
+const FLOOR_PADDING = 1;
+const FLOOR_JOIN_GAP = 1;
+
+function isFloorChild(el: Element): el is FloorChildEl {
+  return el.kind === 'asset' || el.kind === 'tag' || el.kind === 'text';
+}
+
+export function floorChildren(els: Element[], floorId: string): FloorChildEl[] {
+  return els.filter((el): el is FloorChildEl => isFloorChild(el) && el.parentId === floorId);
+}
+
+export function floorBounds(els: Element[], floor: FloorEl): FloorBounds {
+  const children = floorChildren(els, floor.id);
+  if (children.length === 0) {
+    return { gridX: floor.gridX, gridY: floor.gridY, width: floor.width, depth: floor.depth };
+  }
+  const xs = children.map((el) => el.gridX);
+  const ys = children.map((el) => el.gridY);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  return {
+    gridX: minX - FLOOR_PADDING,
+    gridY: minY - FLOOR_PADDING,
+    width: maxX - minX + 1 + FLOOR_PADDING * 2,
+    depth: maxY - minY + 1 + FLOOR_PADDING * 2,
+  };
+}
+
+function containsCell(bounds: FloorBounds, cell: Point): boolean {
+  return cell.x >= bounds.gridX && cell.x < bounds.gridX + bounds.width &&
+    cell.y >= bounds.gridY && cell.y < bounds.gridY + bounds.depth;
+}
+
+function floorBoundsForMembership(els: Element[], floor: FloorEl, childId: string): FloorBounds {
+  const siblings = floorChildren(els, floor.id).filter((child) => child.id !== childId);
+  if (siblings.length === 0) {
+    return { gridX: floor.gridX, gridY: floor.gridY, width: floor.width, depth: floor.depth };
+  }
+  const xs = siblings.map((el) => el.gridX);
+  const ys = siblings.map((el) => el.gridY);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const joinPadding = FLOOR_PADDING + FLOOR_JOIN_GAP;
+  return {
+    gridX: minX - joinPadding,
+    gridY: minY - joinPadding,
+    width: maxX - minX + 1 + joinPadding * 2,
+    depth: maxY - minY + 1 + joinPadding * 2,
+  };
+}
+
+function nearestContainingFloor(els: Element[], child: FloorChildEl): string | undefined {
+  const current = child.parentId;
+  const floors = els
+    .filter((el): el is FloorEl => el.kind === 'floor')
+    .filter((floor) => containsCell(floorBoundsForMembership(els, floor, child.id), { x: child.gridX, y: child.gridY }))
+    .sort((a, b) => {
+      if (a.id === current) return -1;
+      if (b.id === current) return 1;
+      const ab = floorBounds(els, a);
+      const bb = floorBounds(els, b);
+      return ab.width * ab.depth - bb.width * bb.depth;
+    });
+  return floors[0]?.id;
+}
 
 export function addElement(els: Element[], el: Element): Element[] {
   return [...els, el];
 }
 
+export function addElementWithFloorMembership(els: Element[], el: Element): Element[] {
+  const next = [...els, el];
+  if (!isFloorChild(el)) return next;
+  const parentId = nearestContainingFloor(next, el);
+  if (!parentId) return next;
+  return next.map((candidate) => candidate.id === el.id ? ({ ...candidate, parentId } as Element) : candidate);
+}
+
 export function moveElements(els: Element[], ids: string[], dx: number, dy: number): Element[] {
   const set = new Set(ids);
-  return els.map((el) => {
+  for (const id of ids) {
+    const floor = els.find((el) => el.kind === 'floor' && el.id === id);
+    if (floor?.kind === 'floor') {
+      for (const child of floorChildren(els, floor.id)) set.add(child.id);
+    }
+  }
+  const moved = els.map((el) => {
     if (!set.has(el.id) || el.kind === 'connector') return el;
     return { ...el, gridX: el.gridX + dx, gridY: el.gridY + dy };
   });
+  return assignFloorMembership(moved, [...set]);
+}
+
+export function assignFloorMembership(els: Element[], ids?: string[]): Element[] {
+  const set = ids ? new Set(ids) : null;
+  let changed = false;
+  const next = els.map((el) => {
+    if (!isFloorChild(el) || (set && !set.has(el.id))) return el;
+    const parentId = nearestContainingFloor(els, el);
+    if (parentId === el.parentId) return el;
+    changed = true;
+    if (!parentId) {
+      const { parentId: _parentId, ...rest } = el;
+      return rest;
+    }
+    return { ...el, parentId };
+  });
+  return changed ? next : els;
 }
 
 export function deleteElements(els: Element[], ids: string[]): Element[] {
@@ -24,7 +129,8 @@ export function deleteElements(els: Element[], ids: string[]): Element[] {
       if (dead.has(el.id)) continue;
       const cascades =
         (el.kind === 'connector' && (dead.has(el.fromId) || dead.has(el.toId))) ||
-        (el.kind === 'tag' && el.attachedTo !== undefined && dead.has(el.attachedTo));
+        (el.kind === 'tag' && el.attachedTo !== undefined && dead.has(el.attachedTo)) ||
+        (isFloorChild(el) && el.parentId !== undefined && dead.has(el.parentId));
       if (cascades) {
         dead.add(el.id);
         grew = true;
@@ -49,6 +155,7 @@ export function duplicateElements(
     } else {
       const clone = { ...el, id: map.get(el.id)!, gridX: el.gridX + 1, gridY: el.gridY + 1 };
       if (clone.kind === 'tag' && clone.attachedTo) clone.attachedTo = map.get(clone.attachedTo);
+      if (isFloorChild(clone) && clone.parentId) clone.parentId = map.get(clone.parentId) ?? clone.parentId;
       clones.push(clone);
     }
   }
@@ -61,6 +168,12 @@ export function anchorOf(el: Element): Point | null {
     case 'floor': return { x: el.gridX + (el.width - 1) / 2, y: el.gridY + (el.depth - 1) / 2 };
     default: return { x: el.gridX, y: el.gridY };
   }
+}
+
+export function anchorOfElement(el: Element, elements: Element[]): Point | null {
+  if (el.kind !== 'floor') return anchorOf(el);
+  const bounds = floorBounds(elements, el);
+  return { x: bounds.gridX + (bounds.width - 1) / 2, y: bounds.gridY + (bounds.depth - 1) / 2 };
 }
 
 export function updateElement(els: Element[], id: string, patch: Partial<Element>): Element[] {

@@ -1,6 +1,6 @@
 import { Trash2 } from 'lucide-react';
 import { PRESETS } from '../lib/color';
-import { deleteElements, setLabel, updateElement } from '../model/ops';
+import { deleteElements, floorChildren, setLabel, updateElement } from '../model/ops';
 import type { ConnectorEl, FloorEl, Label, TagEl } from '../model/types';
 import { useDocStore } from '../store/docStore';
 
@@ -36,7 +36,11 @@ export function Inspector() {
         </div>
       )}
       {single?.kind === 'floor' && (
-        <FloorControls el={single} onPatch={(patch) => apply((els) => updateElement(els, single.id, patch))} />
+        <FloorControls
+          el={single}
+          childCount={floorChildren(doc.elements, single.id).length}
+          onPatch={(patch) => apply((els) => updateElement(els, single.id, patch))}
+        />
       )}
       {single && (single.kind === 'asset' || single.kind === 'floor') && (
         <LabelControls
@@ -87,16 +91,24 @@ export function Inspector() {
   );
 }
 
-function FloorControls({ el, onPatch }: { el: FloorEl; onPatch: (p: Partial<FloorEl>) => void }) {
+function FloorControls({
+  el, childCount, onPatch,
+}: { el: FloorEl; childCount: number; onPatch: (p: Partial<FloorEl>) => void }) {
   const num = (v: string, fallback: number) =>
     Math.min(12, Math.max(1, parseInt(v, 10) || fallback));
   return (
     <>
       <div className="bp-insp-row">
-        <label>W <input type="number" min={1} max={12} value={el.width}
-          onChange={(e) => onPatch({ width: num(e.target.value, el.width) })} /></label>
-        <label>D <input type="number" min={1} max={12} value={el.depth}
-          onChange={(e) => onPatch({ depth: num(e.target.value, el.depth) })} /></label>
+        {childCount > 0 ? (
+          <span className="bp-insp-note">Auto-sized around {childCount} item{childCount === 1 ? '' : 's'}</span>
+        ) : (
+          <>
+            <label>W <input type="number" min={1} max={12} value={el.width}
+              onChange={(e) => onPatch({ width: num(e.target.value, el.width) })} /></label>
+            <label>D <input type="number" min={1} max={12} value={el.depth}
+              onChange={(e) => onPatch({ depth: num(e.target.value, el.depth) })} /></label>
+          </>
+        )}
       </div>
       <div className="bp-insp-row">
         {(['sharp', 'rounded', 'pill'] as const).map((c) => (

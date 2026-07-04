@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { AssetEl, ConnectorEl, Element, FloorEl, TagEl } from './types';
 import {
-  addElement, anchorOf, createFromPlacing, deleteElements, duplicateElements,
-  moveElements, updateElement, setLabel,
+  addElement, addElementWithFloorMembership, anchorOf, createFromPlacing, deleteElements, duplicateElements,
+  floorBounds, moveElements, updateElement, setLabel,
 } from './ops';
 
 const asset = (id: string, x = 0, y = 0): AssetEl =>
@@ -27,11 +27,59 @@ describe('ops', () => {
     expect(next[1]).toMatchObject({ gridX: 5, gridY: 5 });
   });
 
+  it('assigns placed shapes to a containing floor', () => {
+    const els: Element[] = [floor('f', 0, 0)];
+    const next = addElementWithFloorMembership(els, asset('a', 1, 1));
+    expect((next[1] as AssetEl).parentId).toBe('f');
+  });
+
+  it('auto-sizes populated floors with one grid unit of padding', () => {
+    const els: Element[] = [
+      floor('f', 0, 0),
+      { ...asset('a', 2, 3), parentId: 'f' },
+      { ...asset('b', 5, 7), parentId: 'f' },
+    ];
+    expect(floorBounds(els, els[0] as FloorEl)).toEqual({
+      gridX: 1, gridY: 2, width: 6, depth: 7,
+    });
+  });
+
+  it('dragging a floor moves its children', () => {
+    const els: Element[] = [floor('f', 0, 0), { ...asset('a', 1, 1), parentId: 'f' }];
+    const next = moveElements(els, ['f'], 2, 3);
+    expect(next[0]).toMatchObject({ gridX: 2, gridY: 3 });
+    expect(next[1]).toMatchObject({ gridX: 3, gridY: 4, parentId: 'f' });
+  });
+
+  it('dragging a child out of a floor removes floor membership', () => {
+    const els: Element[] = [floor('f', 0, 0), { ...asset('a', 1, 1), parentId: 'f' }];
+    const next = moveElements(els, ['a'], 5, 0);
+    expect((next[1] as AssetEl).parentId).toBeUndefined();
+  });
+
+  it('adds a moved shape to a floor when it lands one empty cell from grouped content', () => {
+    const els: Element[] = [
+      floor('f', 0, 0),
+      { ...asset('a', 1, 1), parentId: 'f' },
+      asset('b', 6, 1),
+    ];
+    const next = moveElements(els, ['b'], -3, 0);
+    expect((next[2] as AssetEl).parentId).toBe('f');
+    expect(floorBounds(next, next[0] as FloorEl)).toEqual({
+      gridX: 0, gridY: 0, width: 5, depth: 3,
+    });
+  });
+
   it('deleteElements cascades to connectors and attached tags', () => {
     const tag: TagEl = { kind: 'tag', id: 't', attachedTo: 'a', gridX: 0, gridY: 0, text: 'x', color: '#fff', style: 'bubble' };
     const els: Element[] = [asset('a'), asset('b'), conn('c', 'a', 'b'), tag];
     const next = deleteElements(els, ['a']);
     expect(next.map((e) => e.id)).toEqual(['b']);
+  });
+
+  it('deleteElements cascades from floors to grouped children', () => {
+    const els: Element[] = [floor('f'), { ...asset('a'), parentId: 'f' }, asset('b')];
+    expect(deleteElements(els, ['f']).map((e) => e.id)).toEqual(['b']);
   });
 
   it('duplicateElements clones with new ids, +1/+1 offset, remapped connectors', () => {

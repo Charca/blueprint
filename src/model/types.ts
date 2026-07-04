@@ -26,6 +26,7 @@ export interface AssetEl {
   gridX: number; gridY: number;
   assetId: string;
   color: string;
+  parentId?: string;
   label?: Label;
 }
 
@@ -52,6 +53,7 @@ export interface TagEl {
   gridX: number; gridY: number;
   text: string; color: string;
   style: 'bubble' | 'tips';
+  parentId?: string;
   icon?: string;
 }
 
@@ -61,6 +63,7 @@ export interface TextEl {
   content: string;
   title?: string;
   variant: 'plain' | 'callout';
+  parentId?: string;
 }
 
 export type Element = AssetEl | FloorEl | ConnectorEl | TagEl | TextEl;

@@ -1,7 +1,7 @@
 import type { PointerEvent, ReactNode } from 'react';
 import { depth } from '../lib/projection';
 import type { ViewState } from '../lib/projection';
-import { anchorOf } from '../model/ops';
+import { anchorOfElement } from '../model/ops';
 import type { Element } from '../model/types';
 import { AssetShape } from './shapes/AssetShape';
 import { ConnectorShape } from './shapes/ConnectorShape';
@@ -23,7 +23,7 @@ export function Scene({
 }: SceneProps) {
   const assets = elements
     .filter((e) => e.kind === 'asset')
-    .sort((a, b) => depth(anchorOf(a)!, view.rotation) - depth(anchorOf(b)!, view.rotation));
+    .sort((a, b) => depth(anchorOfElement(a, elements)!, view.rotation) - depth(anchorOfElement(b, elements)!, view.rotation));
   const shared = {
     view,
     onPointerDown: onElementPointerDown,
@@ -32,7 +32,7 @@ export function Scene({
   return (
     <>
       {elements.filter((e) => e.kind === 'floor').map((el) => (
-        <FloorShape key={el.id} el={el} selected={selection?.has(el.id)} {...shared} />
+        <FloorShape key={el.id} el={el} elements={elements} selected={selection?.has(el.id)} {...shared} />
       ))}
       {elements.filter((e) => e.kind === 'connector').map((el) => (
         <ConnectorShape key={el.id} el={el} elements={elements}

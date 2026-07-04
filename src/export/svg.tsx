@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { project } from '../lib/projection';
 import type { ViewState } from '../lib/projection';
-import { anchorOf } from '../model/ops';
+import { anchorOfElement, floorBounds } from '../model/ops';
 import type { Doc, Element } from '../model/types';
 import { Scene } from '../components/Scene';
 import { wrapText } from '../lib/wrap';
@@ -14,16 +14,17 @@ export function contentBounds(elements: Element[], view: ViewState): Bounds {
   const pts: { x: number; y: number }[] = [];
   for (const el of elements) {
     if (el.kind === 'floor') {
-      for (const [dx, dy] of [[-0.5, -0.5], [el.width - 0.5, -0.5], [-0.5, el.depth - 0.5], [el.width - 0.5, el.depth - 0.5]]) {
-        pts.push(project({ x: el.gridX + dx, y: el.gridY + dy }, view));
+      const bounds = floorBounds(elements, el);
+      for (const [dx, dy] of [[-0.5, -0.5], [bounds.width - 0.5, -0.5], [-0.5, bounds.depth - 0.5], [bounds.width - 0.5, bounds.depth - 0.5]]) {
+        pts.push(project({ x: bounds.gridX + dx, y: bounds.gridY + dy }, view));
       }
       if (el.label) {
-        const c = project({ x: el.gridX + (el.width - 1) / 2, y: el.gridY + (el.depth - 1) / 2 }, view);
+        const c = project({ x: bounds.gridX + (bounds.width - 1) / 2, y: bounds.gridY + (bounds.depth - 1) / 2 }, view);
         const halfW = (el.label.text.length * 8 + 28) / 2 + 12;
         pts.push({ x: c.x - halfW, y: c.y - 20 }, { x: c.x + halfW, y: c.y + 20 });
       }
     } else {
-      const a = anchorOf(el);
+      const a = anchorOfElement(el, elements);
       if (!a) continue;
       const pt = project(a, view);
       pts.push(pt);

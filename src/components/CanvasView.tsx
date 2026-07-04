@@ -3,7 +3,8 @@ import { unproject } from '../lib/projection';
 import type { Point } from '../lib/projection';
 import { uid } from '../lib/ids';
 import {
-  addElement, createFromPlacing, deleteElements, duplicateElements, moveElements, setLabel, updateElement,
+  addElement, addElementWithFloorMembership, createFromPlacing, deleteElements, duplicateElements,
+  moveElements, setLabel, updateElement,
 } from '../model/ops';
 import { useDocStore } from '../store/docStore';
 import { Grid } from './Grid';
@@ -106,7 +107,7 @@ export function CanvasView() {
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
     if (s.placing) {
       const cell = cellAt(e);
-      s.apply((els) => addElement(els, createFromPlacing(s.placing!, cell)));
+      s.apply((els) => addElementWithFloorMembership(els, createFromPlacing(s.placing!, cell)));
       if (!e.shiftKey) s.setPlacing(null);
       return;
     }
@@ -176,7 +177,7 @@ export function CanvasView() {
         (e.currentTarget as SVGSVGElement).setPointerCapture(e.pointerId);
         if (placing) {
           const cell = cellAt(e);
-          s.apply((els) => addElement(els, createFromPlacing(placing, cell)));
+          s.apply((els) => addElementWithFloorMembership(els, createFromPlacing(placing, cell)));
           if (!e.shiftKey) s.setPlacing(null);
           return;
         }

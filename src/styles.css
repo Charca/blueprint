@@ -47,6 +47,7 @@ button { font: inherit; cursor: pointer; }
 .bp-insp-row label { display: flex; align-items: center; gap: 4px; font-size: 12px; color: #5a6579; }
 .bp-insp-row input[type='number'] { width: 52px; padding: 4px 6px; border: 1px solid #d4dae6; border-radius: 6px; font: inherit; }
 .bp-insp-input { padding: 5px 8px; border: 1px solid #d4dae6; border-radius: 6px; font: inherit; font-size: 12px; width: 170px; }
+.bp-insp-note { font-size: 12px; color: #5a6579; }
 .bp-swatch { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px #d4dae6; padding: 0; }
 .bp-swatch-custom { background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red); }
 .bp-swatch-custom::-webkit-color-swatch-wrapper { opacity: 0; }

@@ -1,5 +1,5 @@
 import { project } from '../../lib/projection';
-import { anchorOf } from '../../model/ops';
+import { anchorOfElement } from '../../model/ops';
 import type { ConnectorEl, Element } from '../../model/types';
 import type { ShapeProps } from './AssetShape';
 
@@ -13,7 +13,7 @@ export function ConnectorShape({
   const from = elements.find((x) => x.id === el.fromId);
   const to = elements.find((x) => x.id === el.toId);
   if (!from || !to) return null;
-  const fa = anchorOf(from), ta = anchorOf(to);
+  const fa = anchorOfElement(from, elements), ta = anchorOfElement(to, elements);
   if (!fa || !ta) return null;
   const a = project(fa, view), b = project(ta, view);
   const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
