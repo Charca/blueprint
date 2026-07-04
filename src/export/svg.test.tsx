@@ -83,6 +83,7 @@ describe('export/svg', () => {
     // The label's halfW extends past the floor's own (tiny) footprint, so the label —
     // not the shape — drives the horizontal bound outward.
     expect(bLabeled.width).toBeGreaterThan(bUnlabeled.width);
+    expect(bLabeled.minY + bLabeled.height).toBeGreaterThan(bUnlabeled.minY + bUnlabeled.height);
   });
 
   it('uses auto-sized floor bounds for grouped children', () => {

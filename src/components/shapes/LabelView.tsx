@@ -6,7 +6,9 @@ import type { Label } from '../../model/types';
 /** Renders a shape/floor label. `anchor` is a point in the enclosing group's
  * user space; the pill/text is centered on it. `orientation` names the side the
  * tag pill sits on (only relevant for `style === 'tag'`). */
-export function LabelView({ label, anchor }: { label: Label; anchor: Point }) {
+export function LabelView({
+  label, anchor, align = 'side',
+}: { label: Label; anchor: Point; align?: 'side' | 'center' }) {
   if (label.style === 'text') {
     return (
       <text x={anchor.x} y={anchor.y + 5} textAnchor="middle"
@@ -19,8 +21,8 @@ export function LabelView({ label, anchor }: { label: Label; anchor: Point }) {
   const dark = hexToHsl(label.color).l <= 0.7;
   const dir = label.orientation === 'right' ? 1 : -1;
   const axis = label.orientation === 'left' ? 'right' : 'left'; // labelPlaneMatrix's text-tilt axis
-  const shift = (w / 2 + 10) * dir;
-  const away = { x: 5 * dir, y: 8.7 };
+  const shift = align === 'center' ? 0 : (w / 2 + 10) * dir;
+  const away = align === 'center' ? { x: 0, y: 0 } : { x: 5 * dir, y: 8.7 };
   return (
     <g transform={`translate(${away.x} ${away.y})`}
       style={{ filter: 'drop-shadow(0 2px 3px rgba(29, 36, 51, 0.28))' }}>

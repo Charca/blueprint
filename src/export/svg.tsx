@@ -7,6 +7,7 @@ import { Scene } from '../components/Scene';
 import { wrapText } from '../lib/wrap';
 
 const PAD = 80;
+const FLOOR_LABEL_GAP = 42;
 
 export interface Bounds { minX: number; minY: number; width: number; height: number }
 
@@ -19,7 +20,29 @@ export function contentBounds(elements: Element[], view: ViewState): Bounds {
         pts.push(project({ x: bounds.gridX + dx, y: bounds.gridY + dy }, view));
       }
       if (el.label) {
-        const c = project({ x: bounds.gridX + (bounds.width - 1) / 2, y: bounds.gridY + (bounds.depth - 1) / 2 }, view);
+        const floorCenter = project({
+          x: bounds.gridX + (bounds.width - 1) / 2,
+          y: bounds.gridY + (bounds.depth - 1) / 2,
+        }, view);
+        const side = el.label.orientation === 'right'
+          ? [
+              project({ x: bounds.gridX + bounds.width - 0.5, y: bounds.gridY - 0.5 }, view),
+              project({ x: bounds.gridX + bounds.width - 0.5, y: bounds.gridY + bounds.depth - 0.5 }, view),
+            ]
+          : [
+              project({ x: bounds.gridX - 0.5, y: bounds.gridY + bounds.depth - 0.5 }, view),
+              project({ x: bounds.gridX + bounds.width - 0.5, y: bounds.gridY + bounds.depth - 0.5 }, view),
+            ];
+        const sideCenter = {
+          x: (side[0].x + side[1].x) / 2,
+          y: (side[0].y + side[1].y) / 2,
+        };
+        const outward = { x: sideCenter.x - floorCenter.x, y: sideCenter.y - floorCenter.y };
+        const outwardLen = Math.hypot(outward.x, outward.y) || 1;
+        const c = {
+          x: sideCenter.x + (outward.x / outwardLen) * FLOOR_LABEL_GAP,
+          y: sideCenter.y + (view.mode === 'iso' ? 6 : 0) + (outward.y / outwardLen) * FLOOR_LABEL_GAP,
+        };
         const halfW = (el.label.text.length * 8 + 28) / 2 + 12;
         pts.push({ x: c.x - halfW, y: c.y - 20 }, { x: c.x + halfW, y: c.y + 20 });
       }

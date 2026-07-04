@@ -5,6 +5,8 @@ import type { Element, FloorEl } from '../../model/types';
 import type { ShapeProps } from './AssetShape';
 import { LabelView } from './LabelView';
 
+const FLOOR_LABEL_GAP = 42;
+
 export function FloorShape({
   el, elements, view, selected, onPointerDown, onDoubleClick,
 }: ShapeProps<FloorEl> & { elements?: Element[] }) {
@@ -15,7 +17,29 @@ export function FloorShape({
   const rx = el.corners === 'pill' ? Math.min(w, d) / 2 : el.corners === 'rounded' ? 18 : 0;
   const pal = derivePalette(el.color);
   const thickness = view.mode === 'iso' ? 6 : 0;
-  const center = project({ x: bounds.gridX + (bounds.width - 1) / 2, y: bounds.gridY + (bounds.depth - 1) / 2 }, view);
+  const floorCenter = project({
+    x: bounds.gridX + (bounds.width - 1) / 2,
+    y: bounds.gridY + (bounds.depth - 1) / 2,
+  }, view);
+  const side = el.label?.orientation === 'right'
+    ? [
+        project({ x: bounds.gridX + bounds.width - 0.5, y: bounds.gridY - 0.5 }, view),
+        project({ x: bounds.gridX + bounds.width - 0.5, y: bounds.gridY + bounds.depth - 0.5 }, view),
+      ]
+    : [
+        project({ x: bounds.gridX - 0.5, y: bounds.gridY + bounds.depth - 0.5 }, view),
+        project({ x: bounds.gridX + bounds.width - 0.5, y: bounds.gridY + bounds.depth - 0.5 }, view),
+      ];
+  const sideCenter = {
+    x: (side[0].x + side[1].x) / 2,
+    y: (side[0].y + side[1].y) / 2,
+  };
+  const outward = { x: sideCenter.x - floorCenter.x, y: sideCenter.y - floorCenter.y };
+  const outwardLen = Math.hypot(outward.x, outward.y) || 1;
+  const labelAnchor = {
+    x: sideCenter.x + (outward.x / outwardLen) * FLOOR_LABEL_GAP,
+    y: sideCenter.y + thickness + (outward.y / outwardLen) * FLOOR_LABEL_GAP,
+  };
 
   return (
     <g
@@ -37,7 +61,7 @@ export function FloorShape({
           strokeDasharray={selected ? '6 4' : undefined}
         />
       </g>
-      {el.label && <LabelView label={el.label} anchor={center} />}
+      {el.label && <LabelView label={el.label} anchor={labelAnchor} align="center" />}
     </g>
   );
 }
