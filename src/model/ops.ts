@@ -1,7 +1,7 @@
 import { PRESETS } from '../lib/color';
 import { uid } from '../lib/ids';
 import type { Point } from '../lib/projection';
-import type { AssetLabel, Element } from './types';
+import type { Label, Element } from './types';
 
 export function addElement(els: Element[], el: Element): Element[] {
   return [...els, el];
@@ -88,19 +88,19 @@ export function createFromPlacing(placing: string, cell: Point): Element {
 
 export const DEFAULT_LABEL_COLOR = '#2A3242';
 
-export function makeLabel(text: string): AssetLabel {
-  return { text, style: 'text', color: DEFAULT_LABEL_COLOR, orientation: 'right' };
+export function makeLabel(text: string): Label {
+  return { text, style: 'text', color: DEFAULT_LABEL_COLOR, orientation: 'left' };
 }
 
-/** Create (with defaults), retext, or remove (empty text) an asset's label.
- * Returns `els` unchanged (same reference) when nothing would change. */
-export function setAssetLabel(els: Element[], id: string, text: string): Element[] {
+/** Create (with defaults), retext, or remove (empty text) an asset's or floor's
+ * label. Returns `els` unchanged (same reference) when nothing would change. */
+export function setLabel(els: Element[], id: string, text: string): Element[] {
   const target = els.find((el) => el.id === id);
-  if (!target || target.kind !== 'asset') return els;
+  if (!target || (target.kind !== 'asset' && target.kind !== 'floor')) return els;
   const trimmed = text.trim();
   if (trimmed === (target.label?.text ?? '')) return els;
   return els.map((el) => {
-    if (el.id !== id || el.kind !== 'asset') return el;
+    if (el.id !== id || (el.kind !== 'asset' && el.kind !== 'floor')) return el;
     if (!trimmed) {
       const { label: _label, ...rest } = el;
       return rest;

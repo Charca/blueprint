@@ -1,17 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { project } from '../lib/projection';
 import type { ViewState } from '../lib/projection';
-import type { AssetEl } from '../model/types';
+import type { AssetEl, FloorEl } from '../model/types';
 
 interface LabelEditorProps {
-  el: AssetEl;
+  el: AssetEl | FloorEl;
   view: ViewState;
   onCommit: (text: string) => void;
   onCancel: () => void;
 }
 
 export function LabelEditor({ el, view, onCommit, onCancel }: LabelEditorProps) {
-  const pt = project({ x: el.gridX, y: el.gridY }, view);
+  const anchor = el.kind === 'floor'
+    ? { x: el.gridX + (el.width - 1) / 2, y: el.gridY + (el.depth - 1) / 2 }
+    : { x: el.gridX, y: el.gridY };
+  const pt = project(anchor, view);
   const [text, setText] = useState(el.label?.text ?? '');
   const inputRef = useRef<HTMLInputElement>(null);
   const done = useRef(false);

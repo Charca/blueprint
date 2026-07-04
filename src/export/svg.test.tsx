@@ -63,4 +63,25 @@ describe('export/svg', () => {
     const b = contentBounds(labeled.elements, labeled.view);
     expect(b.minY + b.height).toBeGreaterThanOrEqual(74 + 80);
   });
+
+  it('includes floor labels in the markup and bounds', () => {
+    const floor = {
+      kind: 'floor' as const, id: 'f1', gridX: 0, gridY: 0, width: 1, depth: 1,
+      corners: 'sharp' as const, color: '#D9E2EC',
+    };
+    const unlabeled: Doc = { ...doc, elements: [floor] };
+    const labeled: Doc = {
+      ...doc,
+      elements: [{
+        ...floor,
+        label: { text: 'Data Center', style: 'tag', color: '#D6E0FF', orientation: 'left' },
+      }],
+    };
+    expect(buildSvg(labeled)).toContain('Data Center');
+    const bUnlabeled = contentBounds(unlabeled.elements, unlabeled.view);
+    const bLabeled = contentBounds(labeled.elements, labeled.view);
+    // The label's halfW extends past the floor's own (tiny) footprint, so the label —
+    // not the shape — drives the horizontal bound outward.
+    expect(bLabeled.width).toBeGreaterThan(bUnlabeled.width);
+  });
 });

@@ -3,7 +3,7 @@ import { unproject } from '../lib/projection';
 import type { Point } from '../lib/projection';
 import { uid } from '../lib/ids';
 import {
-  addElement, createFromPlacing, deleteElements, duplicateElements, moveElements, setAssetLabel, updateElement,
+  addElement, createFromPlacing, deleteElements, duplicateElements, moveElements, setLabel, updateElement,
 } from '../model/ops';
 import { useDocStore } from '../store/docStore';
 import { Grid } from './Grid';
@@ -141,7 +141,7 @@ export function CanvasView() {
     const s = useDocStore.getState();
     const el = doc.elements.find((x) => x.id === id);
     if (!el) return;
-    if (el.kind === 'asset') {
+    if (el.kind === 'asset' || el.kind === 'floor') {
       setLabelEditId(id);
       return;
     }
@@ -219,13 +219,13 @@ export function CanvasView() {
         />
         {(() => {
           const editing = labelEditId ? doc.elements.find((x) => x.id === labelEditId) : null;
-          if (!editing || editing.kind !== 'asset') return null;
+          if (!editing || (editing.kind !== 'asset' && editing.kind !== 'floor')) return null;
           return (
             <LabelEditor
               el={editing}
               view={doc.view}
               onCommit={(text) => {
-                useDocStore.getState().apply((els) => setAssetLabel(els, editing.id, text));
+                useDocStore.getState().apply((els) => setLabel(els, editing.id, text));
                 setLabelEditId(null);
               }}
               onCancel={() => setLabelEditId(null)}
