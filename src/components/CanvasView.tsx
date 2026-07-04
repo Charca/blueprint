@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { unproject } from '../lib/projection';
 import type { Point } from '../lib/projection';
 import { uid } from '../lib/ids';
@@ -58,6 +58,15 @@ export function CanvasView() {
     svg.addEventListener('wheel', onWheel, { passive: false });
     return () => svg.removeEventListener('wheel', onWheel);
   }, []);
+
+  useLayoutEffect(() => {
+    if (!doc || doc.elements.length > 0 || doc.camera.x !== 0 || doc.camera.y !== 0 || doc.camera.zoom !== 1) return;
+    const svg = svgRef.current;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+    useDocStore.getState().setCamera({ x: rect.width / 2, y: rect.height / 2, zoom: 1 });
+  }, [doc]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
