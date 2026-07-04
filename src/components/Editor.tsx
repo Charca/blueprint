@@ -25,10 +25,10 @@ export function Editor({ docId }: { docId: string }) {
 
   return (
     <div className="bp-editor">
-      <TopBar />
       <div className="bp-body">
-        <Palette />
         <div className="bp-canvas-wrap">
+          <Palette />
+          <TopBar />
           <CanvasView />
           <Inspector />
         </div>
