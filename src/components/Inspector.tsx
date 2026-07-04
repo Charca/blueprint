@@ -1,7 +1,7 @@
 import { Trash2 } from 'lucide-react';
 import { PRESETS } from '../lib/color';
 import { deleteElements, setLabel, updateElement } from '../model/ops';
-import type { AssetEl, ConnectorEl, FloorEl, Label, TagEl } from '../model/types';
+import type { ConnectorEl, FloorEl, Label, TagEl } from '../model/types';
 import { useDocStore } from '../store/docStore';
 
 export function Inspector() {
