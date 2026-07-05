@@ -29,8 +29,10 @@ export function CanvasView() {
   const [hoverCell, setHoverCell] = useState<Point | null>(null);
   const [hoverTargetId, setHoverTargetId] = useState<string | null>(null);
   const [labelEditId, setLabelEditId] = useState<string | null>(null);
+  const [spacePan, setSpacePan] = useState(false);
 
   const cam = doc?.camera ?? { x: 0, y: 0, zoom: 1 };
+  const effectiveTool = spacePan ? 'pan' : tool;
 
   const toWorld = (e: { clientX: number; clientY: number }): Point => {
     const r = svgRef.current!.getBoundingClientRect();
@@ -79,6 +81,11 @@ export function CanvasView() {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        setSpacePan(true);
+        return;
+      }
       const s = useDocStore.getState();
       const meta = e.metaKey || e.ctrlKey;
       if (meta && e.key.toLowerCase() === 'z') {
@@ -107,8 +114,15 @@ export function CanvasView() {
         s.select([]);
       }
     };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') setSpacePan(false);
+    };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keyup', onKeyUp);
+    };
   }, []);
 
   if (!doc) return null;
@@ -121,6 +135,10 @@ export function CanvasView() {
     // so capturing on the svg suppresses element double-clicks entirely.
     // Moves/ups still bubble up to the svg's handlers.
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    if (spacePan) {
+      setDrag({ kind: 'pan', sx: e.clientX, sy: e.clientY, cx: cam.x, cy: cam.y });
+      return;
+    }
     if (s.placing) {
       const cell = cellAt(e);
       s.apply((els) => addElementWithFloorMembership(els, createFromPlacing(s.placing!, cell)));
@@ -182,10 +200,14 @@ export function CanvasView() {
   return (
     <svg
       ref={svgRef}
-      className={`bp-canvas bp-tool-${tool}${drag?.kind === 'pan' ? ' bp-is-panning' : ''}`}
+      className={`bp-canvas bp-tool-${effectiveTool}${drag?.kind === 'pan' ? ' bp-is-panning' : ''}`}
       onPointerDown={(e) => {
         const s = useDocStore.getState();
         (e.currentTarget as SVGSVGElement).setPointerCapture(e.pointerId);
+        if (spacePan) {
+          setDrag({ kind: 'pan', sx: e.clientX, sy: e.clientY, cx: cam.x, cy: cam.y });
+          return;
+        }
         if (placing) {
           const cell = cellAt(e);
           s.apply((els) => addElementWithFloorMembership(els, createFromPlacing(placing, cell)));
@@ -201,7 +223,7 @@ export function CanvasView() {
       onPointerMove={(e) => {
         const s = useDocStore.getState();
         if (placing) { setHoverCell(cellAt(e)); return; }
-        if (s.tool === 'connect') {
+        if (!spacePan && s.tool === 'connect') {
           const ignoreId = drag?.kind === 'connect' ? drag.fromId : undefined;
           const target = targetAt(e, ignoreId);
           const targetId = target?.id ?? null;

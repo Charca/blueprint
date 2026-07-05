@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render } from '@testing-library/react';
+import { cleanup, fireEvent, render } from '@testing-library/react';
 import { createDoc } from '../storage/local';
 import { useDocStore } from '../store/docStore';
 import { CanvasView } from './CanvasView';
@@ -24,5 +24,20 @@ describe('CanvasView', () => {
     } finally {
       rectSpy.mockRestore();
     }
+  });
+
+  it('temporarily shows pan behavior while space is held', () => {
+    const doc = createDoc('Space pan');
+    useDocStore.getState().openDoc(doc.id);
+    useDocStore.getState().setTool('connect');
+    const { container } = render(<CanvasView />);
+    const svg = container.querySelector('svg')!;
+
+    expect(svg.classList.contains('bp-tool-connect')).toBe(true);
+    fireEvent.keyDown(window, { code: 'Space', key: ' ' });
+    expect(svg.classList.contains('bp-tool-pan')).toBe(true);
+    expect(useDocStore.getState().tool).toBe('connect');
+    fireEvent.keyUp(window, { code: 'Space', key: ' ' });
+    expect(svg.classList.contains('bp-tool-connect')).toBe(true);
   });
 });
