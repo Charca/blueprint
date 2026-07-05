@@ -3,7 +3,7 @@ import { loadDoc, saveDoc } from '../storage/local';
 import type { Camera, Doc, Element } from '../model/types';
 import type { ViewState } from '../lib/projection';
 
-export type Tool = 'select' | 'connect';
+export type Tool = 'select' | 'pan' | 'connect';
 
 interface DocState {
   doc: Doc | null;

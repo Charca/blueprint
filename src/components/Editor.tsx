@@ -4,6 +4,7 @@ import { useDocStore } from '../store/docStore';
 import { CanvasView } from './CanvasView';
 import { Inspector } from './Inspector';
 import { Palette } from './Palette';
+import { ToolDock } from './ToolDock';
 import { TopBar } from './TopBar';
 
 export function Editor({ docId }: { docId: string }) {
@@ -31,6 +32,7 @@ export function Editor({ docId }: { docId: string }) {
           <TopBar />
           <CanvasView />
           <Inspector />
+          <ToolDock />
         </div>
       </div>
     </div>
