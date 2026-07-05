@@ -88,10 +88,20 @@ export function CanvasView() {
       }
       const s = useDocStore.getState();
       const meta = e.metaKey || e.ctrlKey;
-      if (meta && e.key.toLowerCase() === 'z') {
+      const key = e.key.toLowerCase();
+      if (!meta && !e.altKey && !e.shiftKey && key === 'm') {
+        e.preventDefault();
+        s.setTool('select');
+      } else if (!meta && !e.altKey && !e.shiftKey && key === 'h') {
+        e.preventDefault();
+        s.setTool('pan');
+      } else if (!meta && !e.altKey && !e.shiftKey && key === 'a') {
+        e.preventDefault();
+        s.setTool('connect');
+      } else if (meta && key === 'z') {
         e.preventDefault();
         if (e.shiftKey) s.redo(); else s.undo();
-      } else if (meta && e.key.toLowerCase() === 'd') {
+      } else if (meta && key === 'd') {
         e.preventDefault();
         if (s.selection.length) {
           let created: string[] = [];

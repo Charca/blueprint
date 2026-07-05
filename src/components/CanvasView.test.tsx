@@ -40,4 +40,21 @@ describe('CanvasView', () => {
     fireEvent.keyUp(window, { code: 'Space', key: ' ' });
     expect(svg.classList.contains('bp-tool-connect')).toBe(true);
   });
+
+  it('switches tools with M, H, and A shortcuts outside text inputs', () => {
+    const doc = createDoc('Shortcuts');
+    useDocStore.getState().openDoc(doc.id);
+    const { container } = render(<><input data-testid="field" /><CanvasView /></>);
+
+    fireEvent.keyDown(window, { key: 'h' });
+    expect(useDocStore.getState().tool).toBe('pan');
+    fireEvent.keyDown(window, { key: 'a' });
+    expect(useDocStore.getState().tool).toBe('connect');
+    fireEvent.keyDown(window, { key: 'm' });
+    expect(useDocStore.getState().tool).toBe('select');
+
+    const input = container.querySelector('input')!;
+    fireEvent.keyDown(input, { key: 'a' });
+    expect(useDocStore.getState().tool).toBe('select');
+  });
 });
