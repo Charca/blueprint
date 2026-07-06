@@ -51,6 +51,14 @@ button { font: inherit; cursor: pointer; }
 .bp-tool-active { background: #ededeb; color: #18191d; box-shadow: inset 0 0 0 1px #d8d8d4; }
 
 .bp-canvas-wrap { position: relative; display: flex; flex: 1; width: 100%; height: 100%; min-width: 0; overflow: hidden; background: #f8f7f5; }
+.bp-tool-dock { position: absolute; left: 50%; bottom: 18px; z-index: 7; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 8px; background: rgba(255,255,255,0.9); border: 1px solid rgba(214,214,210,0.95); border-radius: 20px; box-shadow: 0 18px 44px rgba(30, 30, 30, 0.18); backdrop-filter: blur(18px); }
+.bp-tool-btn { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border: 0; border-radius: 14px; color: #303137; background: transparent; }
+.bp-tool-btn:hover { background: #f0f0ee; }
+.bp-tool-btn.bp-active { color: #ffffff; background: #3479ff; box-shadow: 0 10px 22px rgba(52, 121, 255, 0.28); }
+.bp-canvas.bp-tool-select { cursor: default; }
+.bp-canvas.bp-tool-pan, .bp-canvas.bp-tool-pan * { cursor: grab !important; }
+.bp-canvas.bp-tool-pan.bp-is-panning, .bp-canvas.bp-tool-pan.bp-is-panning * { cursor: grabbing !important; }
+.bp-canvas.bp-tool-connect, .bp-canvas.bp-tool-connect * { cursor: crosshair !important; }
 .bp-inspector { position: absolute; top: 18px; right: 18px; width: 260px; max-width: calc(100% - 36px); background: rgba(255,255,255,0.86); border: 1px solid rgba(215,215,212,0.9); border-radius: 22px; padding: 14px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 22px 60px rgba(28, 28, 28, 0.14); backdrop-filter: blur(18px); }
 .bp-insp-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .bp-insp-row label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #64656b; font-weight: 650; }
@@ -73,5 +81,7 @@ button { font: inherit; cursor: pointer; }
   .bp-palette-row { justify-content: center; }
   .bp-topbar { top: 10px; }
   .bp-name { display: none; }
+  .bp-tool-dock { bottom: 10px; }
+  .bp-tool-btn { width: 46px; height: 46px; }
   .bp-inspector { left: 10px; right: 10px; top: auto; bottom: 10px; width: auto; }
 }

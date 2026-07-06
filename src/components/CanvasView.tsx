@@ -1,11 +1,14 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { unproject } from '../lib/projection';
+import { project, unproject } from '../lib/projection';
 import type { Point } from '../lib/projection';
+import { edgePoint, elementAtProjectedPoint, projectedElementHull } from '../lib/connectorGeometry';
 import { uid } from '../lib/ids';
 import {
+  anchorOfElement,
   addElement, addElementWithFloorMembership, createFromPlacing, deleteElements, duplicateElements,
   moveElements, setLabel, updateElement,
 } from '../model/ops';
+import type { Element as ModelElement } from '../model/types';
 import { useDocStore } from '../store/docStore';
 import { Grid } from './Grid';
 import { LabelEditor } from './LabelEditor';
@@ -13,19 +16,23 @@ import { Scene } from './Scene';
 
 interface PanDrag { kind: 'pan'; sx: number; sy: number; cx: number; cy: number }
 interface MoveDrag { kind: 'move'; last: Point; ids: string[]; moved: boolean }
-type Drag = PanDrag | MoveDrag;
+interface ConnectDrag { kind: 'connect'; fromId: string; pointer: Point; targetId: string | null }
+type Drag = PanDrag | MoveDrag | ConnectDrag;
 
 export function CanvasView() {
   const doc = useDocStore((s) => s.doc);
   const selection = useDocStore((s) => s.selection);
   const placing = useDocStore((s) => s.placing);
-  const connectFrom = useDocStore((s) => s.connectFrom);
+  const tool = useDocStore((s) => s.tool);
   const svgRef = useRef<SVGSVGElement>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [hoverCell, setHoverCell] = useState<Point | null>(null);
+  const [hoverTargetId, setHoverTargetId] = useState<string | null>(null);
   const [labelEditId, setLabelEditId] = useState<string | null>(null);
+  const [spacePan, setSpacePan] = useState(false);
 
   const cam = doc?.camera ?? { x: 0, y: 0, zoom: 1 };
+  const effectiveTool = spacePan ? 'pan' : tool;
 
   const toWorld = (e: { clientX: number; clientY: number }): Point => {
     const r = svgRef.current!.getBoundingClientRect();
@@ -35,6 +42,8 @@ export function CanvasView() {
     const g = unproject(toWorld(e), doc!.view);
     return { x: Math.round(g.x), y: Math.round(g.y) };
   };
+  const targetAt = (e: { clientX: number; clientY: number }, ignoreId?: string): ModelElement | null =>
+    elementAtProjectedPoint(doc!.elements, doc!.view, toWorld(e), ignoreId);
 
   useEffect(() => {
     const svg = svgRef.current;
@@ -72,12 +81,27 @@ export function CanvasView() {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        setSpacePan(true);
+        return;
+      }
       const s = useDocStore.getState();
       const meta = e.metaKey || e.ctrlKey;
-      if (meta && e.key.toLowerCase() === 'z') {
+      const key = e.key.toLowerCase();
+      if (!meta && !e.altKey && !e.shiftKey && key === 'm') {
+        e.preventDefault();
+        s.setTool('select');
+      } else if (!meta && !e.altKey && !e.shiftKey && key === 'h') {
+        e.preventDefault();
+        s.setTool('pan');
+      } else if (!meta && !e.altKey && !e.shiftKey && key === 'a') {
+        e.preventDefault();
+        s.setTool('connect');
+      } else if (meta && key === 'z') {
         e.preventDefault();
         if (e.shiftKey) s.redo(); else s.undo();
-      } else if (meta && e.key.toLowerCase() === 'd') {
+      } else if (meta && key === 'd') {
         e.preventDefault();
         if (s.selection.length) {
           let created: string[] = [];
@@ -100,8 +124,15 @@ export function CanvasView() {
         s.select([]);
       }
     };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') setSpacePan(false);
+    };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keyup', onKeyUp);
+    };
   }, []);
 
   if (!doc) return null;
@@ -114,6 +145,10 @@ export function CanvasView() {
     // so capturing on the svg suppresses element double-clicks entirely.
     // Moves/ups still bubble up to the svg's handlers.
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    if (spacePan) {
+      setDrag({ kind: 'pan', sx: e.clientX, sy: e.clientY, cx: cam.x, cy: cam.y });
+      return;
+    }
     if (s.placing) {
       const cell = cellAt(e);
       s.apply((els) => addElementWithFloorMembership(els, createFromPlacing(s.placing!, cell)));
@@ -122,19 +157,14 @@ export function CanvasView() {
     }
     const el = doc.elements.find((x) => x.id === id);
     if (!el) return;
+    if (s.tool === 'pan') {
+      setDrag({ kind: 'pan', sx: e.clientX, sy: e.clientY, cx: cam.x, cy: cam.y });
+      return;
+    }
     if (s.tool === 'connect') {
-      const target = doc.elements.find((x) => x.id === id);
-      if (!target || target.kind === 'connector') return;
-      if (!s.connectFrom) {
-        s.setConnectFrom(id);
-      } else if (s.connectFrom !== id) {
-        const fromId = s.connectFrom;
-        s.apply((els) => addElement(els, {
-          kind: 'connector', id: uid(), fromId, toId: id, style: 'solid', color: '#425066',
-        }));
-        s.setConnectFrom(null);
-        s.setTool('select');
-      }
+      if (el.kind === 'connector') return;
+      setDrag({ kind: 'connect', fromId: id, pointer: toWorld(e), targetId: null });
+      setHoverTargetId(id);
       return;
     }
     const next = e.shiftKey
@@ -180,26 +210,43 @@ export function CanvasView() {
   return (
     <svg
       ref={svgRef}
-      className="bp-canvas"
+      className={`bp-canvas bp-tool-${effectiveTool}${drag?.kind === 'pan' ? ' bp-is-panning' : ''}`}
       onPointerDown={(e) => {
         const s = useDocStore.getState();
         (e.currentTarget as SVGSVGElement).setPointerCapture(e.pointerId);
+        if (spacePan) {
+          setDrag({ kind: 'pan', sx: e.clientX, sy: e.clientY, cx: cam.x, cy: cam.y });
+          return;
+        }
         if (placing) {
           const cell = cellAt(e);
           s.apply((els) => addElementWithFloorMembership(els, createFromPlacing(placing, cell)));
           if (!e.shiftKey) s.setPlacing(null);
           return;
         }
+        if (s.tool === 'pan') {
+          setDrag({ kind: 'pan', sx: e.clientX, sy: e.clientY, cx: cam.x, cy: cam.y });
+          return;
+        }
         s.select([]);
-        setDrag({ kind: 'pan', sx: e.clientX, sy: e.clientY, cx: cam.x, cy: cam.y });
       }}
       onPointerMove={(e) => {
         const s = useDocStore.getState();
         if (placing) { setHoverCell(cellAt(e)); return; }
+        if (!spacePan && s.tool === 'connect') {
+          const ignoreId = drag?.kind === 'connect' ? drag.fromId : undefined;
+          const target = targetAt(e, ignoreId);
+          const targetId = target?.id ?? null;
+          setHoverTargetId(targetId ?? (drag?.kind === 'connect' ? drag.fromId : null));
+          if (drag?.kind === 'connect') {
+            setDrag({ ...drag, pointer: toWorld(e), targetId });
+          }
+          return;
+        }
         if (!drag) return;
         if (drag.kind === 'pan') {
           s.setCamera({ ...cam, x: drag.cx + e.clientX - drag.sx, y: drag.cy + e.clientY - drag.sy });
-        } else {
+        } else if (drag.kind === 'move') {
           const c = cellAt(e);
           if (c.x !== drag.last.x || c.y !== drag.last.y) {
             s.applyTransient((els) => moveElements(els, drag.ids, c.x - drag.last.x, c.y - drag.last.y));
@@ -210,7 +257,17 @@ export function CanvasView() {
       onPointerUp={() => {
         const s = useDocStore.getState();
         if (drag?.kind === 'move') s.commitTransient();
+        if (drag?.kind === 'connect' && drag.targetId && drag.targetId !== drag.fromId) {
+          const fromId = drag.fromId;
+          const toId = drag.targetId;
+          s.apply((els) => addElement(els, {
+            kind: 'connector', id: uid(), fromId, toId, style: 'solid', color: '#425066',
+          }));
+        }
         setDrag(null);
+      }}
+      onPointerLeave={() => {
+        if (!drag) setHoverTargetId(null);
       }}
     >
       <g transform={`translate(${cam.x} ${cam.y}) scale(${cam.zoom})`}>
@@ -218,7 +275,7 @@ export function CanvasView() {
         <Scene
           elements={doc.elements}
           view={doc.view}
-          selection={new Set(connectFrom ? [...selection, connectFrom] : selection)}
+          selection={new Set(hoverTargetId ? [...selection, hoverTargetId] : selection)}
           onElementPointerDown={onElementPointerDown}
           onElementDoubleClick={onElementDoubleClick}
           ghost={placing && hoverCell ? (
@@ -227,6 +284,15 @@ export function CanvasView() {
             </g>
           ) : null}
         />
+        {drag?.kind === 'connect' && (
+          <ConnectorPreview
+            fromId={drag.fromId}
+            targetId={drag.targetId}
+            pointer={drag.pointer}
+            elements={doc.elements}
+            view={doc.view}
+          />
+        )}
         {(() => {
           const editing = labelEditId ? doc.elements.find((x) => x.id === labelEditId) : null;
           if (!editing || (editing.kind !== 'asset' && editing.kind !== 'floor')) return null;
@@ -244,5 +310,41 @@ export function CanvasView() {
         })()}
       </g>
     </svg>
+  );
+}
+
+function ConnectorPreview({
+  fromId, targetId, pointer, elements, view,
+}: {
+  fromId: string;
+  targetId: string | null;
+  pointer: Point;
+  elements: ModelElement[];
+  view: NonNullable<ReturnType<typeof useDocStore.getState>['doc']>['view'];
+}) {
+  const from = elements.find((el) => el.id === fromId);
+  const to = targetId ? elements.find((el) => el.id === targetId) : null;
+  if (!from) return null;
+  const fa = anchorOfElement(from, elements);
+  if (!fa) return null;
+  const fromCenter = project(fa, view);
+  const toAnchor = to ? anchorOfElement(to, elements) : null;
+  const toPoint = to && toAnchor ? project(toAnchor, view) : pointer;
+  const start = edgePoint(fromCenter, toPoint, projectedElementHull(from, elements, view));
+  const end = to && toAnchor
+    ? edgePoint(toPoint, fromCenter, projectedElementHull(to, elements, view))
+    : toPoint;
+  return (
+    <g pointerEvents="none">
+      <defs>
+        <marker id="arrow-preview" viewBox="0 0 10 10" refX="8" refY="5"
+          markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0 0L10 5L0 10z" fill="#425066" />
+        </marker>
+      </defs>
+      <line x1={start.x} y1={start.y} x2={end.x} y2={end.y}
+        stroke="#425066" strokeWidth={3} strokeLinecap="round"
+        markerEnd="url(#arrow-preview)" opacity={0.78} />
+    </g>
   );
 }

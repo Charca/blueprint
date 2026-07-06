@@ -1,4 +1,4 @@
-import { ArrowLeft, FileCode2, ImageDown, Redo2, Spline, Undo2 } from 'lucide-react';
+import { ArrowLeft, FileCode2, ImageDown, Redo2, Undo2 } from 'lucide-react';
 import { buildSvg } from '../export/svg';
 import { download, svgToPngBlob } from '../export/png';
 import { useAppStore } from '../store/appStore';
@@ -9,8 +9,6 @@ export function TopBar() {
   const setName = useDocStore((s) => s.setName);
   const undo = useDocStore((s) => s.undo);
   const redo = useDocStore((s) => s.redo);
-  const tool = useDocStore((s) => s.tool);
-  const setTool = useDocStore((s) => s.setTool);
   const goHome = useAppStore((s) => s.goHome);
   if (!doc) return null;
 
@@ -27,14 +25,6 @@ export function TopBar() {
       <div className="bp-topbar-spacer" />
       <button className="bp-icon-btn" title="Undo (⌘Z)" onClick={undo}><Undo2 size={16} /></button>
       <button className="bp-icon-btn" title="Redo (⇧⌘Z)" onClick={redo}><Redo2 size={16} /></button>
-      <button
-        className={`bp-icon-btn${tool === 'connect' ? ' bp-tool-active' : ''}`}
-        title="Connect elements"
-        onClick={() => setTool(tool === 'connect' ? 'select' : 'connect')}
-      >
-        <Spline size={16} />
-      </button>
-      <div className="bp-divider" />
       <button className="bp-icon-btn" title="Export SVG"
         onClick={() => download(`${doc.name}.svg`, new Blob([buildSvg(doc)], { type: 'image/svg+xml' }))}>
         <FileCode2 size={16} />

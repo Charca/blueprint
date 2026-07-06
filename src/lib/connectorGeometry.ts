@@ -1,4 +1,5 @@
 import { floorBounds } from '../model/ops';
+import { depth } from './projection';
 import type { Element } from '../model/types';
 import { project } from './projection';
 import type { Point, ViewState } from './projection';
@@ -72,4 +73,40 @@ export function edgePoint(fromCenter: Point, toCenter: Point, hull: Point[] | nu
     if (!best || hit.t < best.t) best = hit;
   }
   return best?.point ?? fromCenter;
+}
+
+export function containsProjectedPoint(hull: Point[] | null, point: Point): boolean {
+  if (!hull || hull.length < 3) return false;
+  let inside = false;
+  for (let i = 0, j = hull.length - 1; i < hull.length; j = i++) {
+    const a = hull[i];
+    const b = hull[j];
+    const intersects = (a.y > point.y) !== (b.y > point.y) &&
+      point.x < ((b.x - a.x) * (point.y - a.y)) / (b.y - a.y || 1e-6) + a.x;
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
+export function elementAtProjectedPoint(
+  elements: Element[], view: ViewState, point: Point, ignoreId?: string,
+): Element | null {
+  const hits = elements
+    .filter((el) => el.kind !== 'connector' && el.id !== ignoreId)
+    .filter((el) => containsProjectedPoint(projectedElementHull(el, elements, view), point))
+    .sort((a, b) => layerRank(b) - layerRank(a) || depthPoint(b, elements, view) - depthPoint(a, elements, view));
+  return hits[0] ?? null;
+}
+
+function layerRank(el: Element): number {
+  return el.kind === 'floor' ? 0 : 1;
+}
+
+function depthPoint(el: Element, elements: Element[], view: ViewState): number {
+  if (el.kind === 'floor') {
+    const bounds = floorBounds(elements, el);
+    return depth({ x: bounds.gridX + (bounds.width - 1) / 2, y: bounds.gridY + (bounds.depth - 1) / 2 }, view.rotation);
+  }
+  if (el.kind === 'connector') return Number.NEGATIVE_INFINITY;
+  return depth({ x: el.gridX, y: el.gridY }, view.rotation);
 }
