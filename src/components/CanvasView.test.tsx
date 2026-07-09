@@ -41,7 +41,7 @@ describe('CanvasView', () => {
     expect(svg.classList.contains('bp-tool-connect')).toBe(true);
   });
 
-  it('switches tools with M, H, and A shortcuts outside text inputs', () => {
+  it('switches tools with V, H, and A shortcuts outside text inputs', () => {
     const doc = createDoc('Shortcuts');
     useDocStore.getState().openDoc(doc.id);
     const { container } = render(<><input data-testid="field" /><CanvasView /></>);
@@ -51,6 +51,8 @@ describe('CanvasView', () => {
     fireEvent.keyDown(window, { key: 'a' });
     expect(useDocStore.getState().tool).toBe('connect');
     fireEvent.keyDown(window, { key: 'm' });
+    expect(useDocStore.getState().tool).toBe('connect');
+    fireEvent.keyDown(window, { key: 'v' });
     expect(useDocStore.getState().tool).toBe('select');
 
     const input = container.querySelector('input')!;

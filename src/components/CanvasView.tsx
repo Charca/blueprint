@@ -89,7 +89,7 @@ export function CanvasView() {
       const s = useDocStore.getState();
       const meta = e.metaKey || e.ctrlKey;
       const key = e.key.toLowerCase();
-      if (!meta && !e.altKey && !e.shiftKey && key === 'm') {
+      if (!meta && !e.altKey && !e.shiftKey && key === 'v') {
         e.preventDefault();
         s.setTool('select');
       } else if (!meta && !e.altKey && !e.shiftKey && key === 'h') {
