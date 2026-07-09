@@ -239,7 +239,7 @@ export function createFromPlacing(placing: string, cell: Point): Element {
 export const DEFAULT_LABEL_COLOR = '#2A3242';
 
 export function makeLabel(text: string): Label {
-  return { text, style: 'text', color: DEFAULT_LABEL_COLOR, orientation: 'left' };
+  return { text, style: 'tag', color: DEFAULT_LABEL_COLOR, orientation: 'left' };
 }
 
 /** Create (with defaults), retext, or remove (empty text) an asset's or floor's
