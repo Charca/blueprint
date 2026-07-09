@@ -9,11 +9,13 @@ import {
   planePoint,
 } from '../../lib/connectorGeometry';
 import { anchorOfElement } from '../../model/ops';
+import type { PointerEvent } from 'react';
 import type { ConnectorEl, ConnectorHead, Element } from '../../model/types';
 import type { ShapeProps } from './AssetShape';
 
 interface ConnectorProps extends ShapeProps<ConnectorEl> {
   elements: Element[];
+  onElbowPointerDown?: (e: PointerEvent, id: string) => void;
 }
 
 function markerRef(id: string, head: ConnectorHead | undefined): string | undefined {
@@ -60,7 +62,7 @@ function ConnectorMarker({ id, head, color }: { id: string; head: ConnectorHead;
 }
 
 export function ConnectorShape({
-  el, elements, view, selected, onPointerDown, onDoubleClick,
+  el, elements, view, selected, onPointerDown, onDoubleClick, onElbowPointerDown,
 }: ConnectorProps) {
   const from = elements.find((x) => x.id === el.fromId);
   const to = elements.find((x) => x.id === el.toId);
@@ -75,6 +77,7 @@ export function ConnectorShape({
     planeElementHull(from, elements),
     planeElementHull(to, elements),
     route,
+    el.elbowOffset,
   );
   const d = connectorPathD(points, route === 'elbow');
   const midPlane = points[Math.floor(points.length / 2)] ?? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
@@ -86,6 +89,12 @@ export function ConnectorShape({
   const stroke = selected ? '#7C5CFF' : el.color;
   const markerHeads = [...new Set([startHead, endHead])];
   const labelW = el.label ? el.label.length * 8 + 24 : 0;
+  const elbowHandle = route === 'elbow' && points.length >= 4
+    ? {
+        x: points[1].x,
+        y: (points[1].y + points[2].y) / 2,
+      }
+    : null;
 
   return (
     <g
@@ -106,6 +115,18 @@ export function ConnectorShape({
           markerStart={markerRef(markerId, startHead)}
           markerEnd={markerRef(markerId, endHead)}
         />
+        {selected && elbowHandle && (
+          <g
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              onElbowPointerDown?.(e, el.id);
+            }}
+            style={onElbowPointerDown ? { cursor: 'ew-resize' } : undefined}
+          >
+            <circle cx={elbowHandle.x} cy={elbowHandle.y} r={9} fill="#ffffff" stroke="#7C5CFF" strokeWidth={3} />
+            <circle cx={elbowHandle.x} cy={elbowHandle.y} r={3} fill="#7C5CFF" />
+          </g>
+        )}
       </g>
       {el.label && (
         <g transform={`translate(${mid.x} ${mid.y})`}>

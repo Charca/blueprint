@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { AssetEl, Element } from '../model/types';
 import { anchorOfElement } from '../model/ops';
 import { project } from './projection';
-import { connectorPathD, connectorRoutePoints, edgePoint, elementAtProjectedPoint, projectedElementHull } from './connectorGeometry';
+import { DEFAULT_CONNECTOR_ROUTE, connectorPathD, connectorRoutePoints, edgePoint, elementAtProjectedPoint, projectedElementHull } from './connectorGeometry';
 
 const ISO = { rotation: 0 as const, mode: 'iso' as const };
 
@@ -31,6 +31,7 @@ describe('connectorGeometry', () => {
     const end = { x: 100, y: 80 };
     const points = connectorRoutePoints(start, end, null, null, 'elbow');
 
+    expect(DEFAULT_CONNECTOR_ROUTE).toBe('elbow');
     expect(points).toEqual([
       start,
       { x: 50, y: 0 },
@@ -38,6 +39,17 @@ describe('connectorGeometry', () => {
       end,
     ]);
     expect(connectorPathD(points, true)).toContain('Q 50 0');
+  });
+
+  it('uses a custom elbow offset for routed connectors', () => {
+    const start = { x: 0, y: 0 };
+    const end = { x: 100, y: 80 };
+    expect(connectorRoutePoints(start, end, null, null, 'elbow', 25)).toEqual([
+      start,
+      { x: 75, y: 0 },
+      { x: 75, y: 80 },
+      end,
+    ]);
   });
 
   it('finds the topmost connectable element under a projected point', () => {

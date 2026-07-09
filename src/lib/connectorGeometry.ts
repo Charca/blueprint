@@ -13,7 +13,7 @@ const ELBOW_RADIUS = 18;
 
 export const DEFAULT_CONNECTOR_START_HEAD = 'none' as const;
 export const DEFAULT_CONNECTOR_END_HEAD = 'arrow' as const;
-export const DEFAULT_CONNECTOR_ROUTE = 'sharp' as const;
+export const DEFAULT_CONNECTOR_ROUTE = 'elbow' as const;
 
 export function connectorStartHead(el: Pick<ConnectorEl, 'startHead'>) {
   return el.startHead ?? DEFAULT_CONNECTOR_START_HEAD;
@@ -106,12 +106,13 @@ export function connectorRoutePoints(
   fromHull: Point[] | null,
   toHull: Point[] | null,
   route: ConnectorEl['route'] = DEFAULT_CONNECTOR_ROUTE,
+  elbowOffset?: number,
 ): Point[] {
   if ((route ?? DEFAULT_CONNECTOR_ROUTE) === 'sharp') {
     return [edgePoint(fromCenter, toCenter, fromHull), edgePoint(toCenter, fromCenter, toHull)];
   }
 
-  const midX = (fromCenter.x + toCenter.x) / 2;
+  const midX = (fromCenter.x + toCenter.x) / 2 + (elbowOffset ?? 0);
   const centerRoute = compactPoints([
     fromCenter,
     { x: midX, y: fromCenter.y },

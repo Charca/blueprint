@@ -36,12 +36,20 @@ describe('ConnectorShape connector heads and routing', () => {
     expect(html).toContain('marker-end="url(#connector-c-arrow)"');
   });
 
-  it('renders elbow connectors as rounded paths', () => {
+  it('defaults connectors to rounded elbow paths', () => {
     const html = renderToStaticMarkup(
-      <ConnectorShape el={connector({ route: 'elbow' })} elements={elements} view={TOP} />,
+      <ConnectorShape el={connector()} elements={elements} view={TOP} />,
     );
     expect(html).toContain(' Q ');
     expect(html).toContain('stroke-linejoin="round"');
+  });
+
+  it('renders a selected elbow handle at a customized bend', () => {
+    const html = renderToStaticMarkup(
+      <ConnectorShape el={connector({ elbowOffset: 50 })} elements={elements} view={TOP} selected onElbowPointerDown={() => undefined} />,
+    );
+    expect(html).toContain('cx="150"');
+    expect(html).toContain('cursor:ew-resize');
   });
 
   it('draws iso connectors inside the floor plane transform', () => {

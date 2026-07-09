@@ -52,8 +52,10 @@ export interface ConnectorEl {
   startHead?: ConnectorHead;
   /** Missing values in existing documents are treated as the current arrow default. */
   endHead?: ConnectorHead;
-  /** Missing values in existing documents are treated as 'sharp'. */
+  /** Missing values in existing documents are treated as the current route default. */
   route?: ConnectorRoute;
+  /** Plane-space x delta from the default primary elbow bend. */
+  elbowOffset?: number;
   color: string;
   label?: string;
 }
