@@ -190,7 +190,7 @@ export function duplicateElementsToRight(
   els: Element[], ids: string[],
 ): { elements: Element[]; newIds: string[] } {
   const bounds = duplicateBounds(els, ids);
-  return duplicateElements(els, ids, { x: bounds ? bounds.width : 1, y: 0 });
+  return duplicateElements(els, ids, { x: bounds ? bounds.width + 1 : 1, y: 0 });
 }
 
 export function anchorOf(el: Element): Point | null {

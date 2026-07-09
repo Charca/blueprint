@@ -93,7 +93,7 @@ describe('CanvasView', () => {
     expect(useDocStore.getState().selection).toEqual(['a']);
   });
 
-  it('copies, deletes, and pastes the current selection immediately to the right', () => {
+  it('copies, deletes, and pastes the current selection to the right with a gap', () => {
     useDocStore.setState({
       doc: docWithElements([asset('a', 1, 1), asset('b', 3, 1), conn('c', 'a', 'b')]),
       selection: ['a', 'b'],
@@ -111,15 +111,15 @@ describe('CanvasView', () => {
     const cloneAssets = state.doc!.elements.filter((el): el is AssetEl => el.kind === 'asset');
     const cloneConn = state.doc!.elements.find((el) => el.kind === 'connector') as ConnectorEl;
     expect(cloneAssets).toEqual(expect.arrayContaining([
-      expect.objectContaining({ gridX: 4, gridY: 1 }),
-      expect.objectContaining({ gridX: 6, gridY: 1 }),
+      expect.objectContaining({ gridX: 5, gridY: 1 }),
+      expect.objectContaining({ gridX: 7, gridY: 1 }),
     ]));
     expect(cloneAssets.map((el) => el.id)).toContain(cloneConn.fromId);
     expect(cloneAssets.map((el) => el.id)).toContain(cloneConn.toId);
     expect(state.selection).toEqual(state.doc!.elements.map((el) => el.id));
   });
 
-  it('duplicates the current selection immediately to the right', () => {
+  it('duplicates the current selection to the right with a gap', () => {
     useDocStore.setState({
       doc: docWithElements([asset('a', 1, 1), asset('b', 3, 1)]),
       selection: ['a', 'b'],
@@ -133,8 +133,8 @@ describe('CanvasView', () => {
     expect(state.doc?.elements).toHaveLength(4);
     const clones = state.doc!.elements.filter((el) => el.id !== 'a' && el.id !== 'b') as AssetEl[];
     expect(clones).toEqual(expect.arrayContaining([
-      expect.objectContaining({ gridX: 4, gridY: 1 }),
-      expect.objectContaining({ gridX: 6, gridY: 1 }),
+      expect.objectContaining({ gridX: 5, gridY: 1 }),
+      expect.objectContaining({ gridX: 7, gridY: 1 }),
     ]));
     expect(state.selection).toEqual(clones.map((el) => el.id));
   });

@@ -184,14 +184,14 @@ describe('ops', () => {
     expect((elements[1] as AssetEl).label?.text).toBe('DB');
   });
 
-  it('duplicateElementsToRight places clones immediately to the right of the selected group', () => {
+  it('duplicateElementsToRight places clones to the right of the selected group with a gap', () => {
     const els: Element[] = [asset('a', 0, 0), asset('b', 2, 1), conn('c', 'a', 'b')];
     const { elements, newIds } = duplicateElementsToRight(els, ['a', 'b']);
     expect(newIds).toHaveLength(3);
     const clones = elements.slice(3);
     expect(clones).toEqual(expect.arrayContaining([
-      expect.objectContaining({ kind: 'asset', gridX: 3, gridY: 0 }),
-      expect.objectContaining({ kind: 'asset', gridX: 5, gridY: 1 }),
+      expect.objectContaining({ kind: 'asset', gridX: 4, gridY: 0 }),
+      expect.objectContaining({ kind: 'asset', gridX: 6, gridY: 1 }),
     ]));
     const cloneConn = clones.find((el) => el.kind === 'connector') as ConnectorEl;
     const cloneAssets = clones.filter((el): el is AssetEl => el.kind === 'asset');
@@ -205,8 +205,8 @@ describe('ops', () => {
     const clones = elements.slice(2);
     const cloneFloor = clones.find((el) => el.kind === 'floor') as FloorEl;
     const cloneAsset = clones.find((el) => el.kind === 'asset') as AssetEl;
-    expect(cloneFloor.gridX).toBe(3);
-    expect(cloneAsset).toMatchObject({ gridX: 4, gridY: 1, parentId: cloneFloor.id });
+    expect(cloneFloor.gridX).toBe(4);
+    expect(cloneAsset).toMatchObject({ gridX: 5, gridY: 1, parentId: cloneFloor.id });
   });
 
   it('setLabel returns the same array when nothing changes', () => {
