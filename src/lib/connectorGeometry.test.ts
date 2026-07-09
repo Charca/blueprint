@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { AssetEl, Element } from '../model/types';
 import { anchorOfElement } from '../model/ops';
 import { project } from './projection';
-import { edgePoint, elementAtProjectedPoint, projectedElementHull } from './connectorGeometry';
+import { edgePoint, elementAtProjectedPoint, paddedEdgePoint, projectedElementHull } from './connectorGeometry';
 
 const ISO = { rotation: 0 as const, mode: 'iso' as const };
 
@@ -24,6 +24,21 @@ describe('connectorGeometry', () => {
     expect(start.y).toBeCloseTo(34.641, 3);
     expect(end.x).toBeCloseTo(69.904, 3);
     expect(end.y).toBeCloseTo(40.359, 3);
+  });
+
+  it('pads arrow endpoints away from target outlines', () => {
+    const elements: Element[] = [asset('a', 0, 0), asset('b', 3, 0)];
+    const [from, to] = elements;
+    const fromCenter = project(anchorOfElement(from, elements)!, ISO);
+    const toCenter = project(anchorOfElement(to, elements)!, ISO);
+    const hull = projectedElementHull(to, elements, ISO);
+
+    const edge = edgePoint(toCenter, fromCenter, hull);
+    const padded = paddedEdgePoint(toCenter, fromCenter, hull, 12);
+
+    expect(Math.hypot(padded.x - edge.x, padded.y - edge.y)).toBeCloseTo(12, 4);
+    expect(Math.hypot(padded.x - fromCenter.x, padded.y - fromCenter.y))
+      .toBeLessThan(Math.hypot(edge.x - fromCenter.x, edge.y - fromCenter.y));
   });
 
   it('finds the topmost connectable element under a projected point', () => {

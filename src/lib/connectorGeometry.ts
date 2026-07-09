@@ -75,6 +75,22 @@ export function edgePoint(fromCenter: Point, toCenter: Point, hull: Point[] | nu
   return best?.point ?? fromCenter;
 }
 
+export function paddedEdgePoint(
+  fromCenter: Point,
+  toCenter: Point,
+  hull: Point[] | null,
+  padding: number,
+): Point {
+  const edge = edgePoint(fromCenter, toCenter, hull);
+  if (padding <= 0) return edge;
+  const dx = toCenter.x - edge.x;
+  const dy = toCenter.y - edge.y;
+  const len = Math.hypot(dx, dy);
+  if (len < 1e-6) return edge;
+  const offset = Math.min(padding, len);
+  return { x: edge.x + (dx / len) * offset, y: edge.y + (dy / len) * offset };
+}
+
 export function containsProjectedPoint(hull: Point[] | null, point: Point): boolean {
   if (!hull || hull.length < 3) return false;
   let inside = false;

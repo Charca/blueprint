@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { project, unproject } from '../lib/projection';
 import type { Point } from '../lib/projection';
-import { edgePoint, elementAtProjectedPoint, projectedElementHull } from '../lib/connectorGeometry';
+import { edgePoint, elementAtProjectedPoint, paddedEdgePoint, projectedElementHull } from '../lib/connectorGeometry';
 import { uid } from '../lib/ids';
 import {
   anchorOfElement,
@@ -332,7 +332,7 @@ function ConnectorPreview({
   const toPoint = to && toAnchor ? project(toAnchor, view) : pointer;
   const start = edgePoint(fromCenter, toPoint, projectedElementHull(from, elements, view));
   const end = to && toAnchor
-    ? edgePoint(toPoint, fromCenter, projectedElementHull(to, elements, view))
+    ? paddedEdgePoint(toPoint, fromCenter, projectedElementHull(to, elements, view), 12)
     : toPoint;
   return (
     <g pointerEvents="none">

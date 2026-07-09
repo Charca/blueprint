@@ -1,5 +1,5 @@
 import { project } from '../../lib/projection';
-import { edgePoint, projectedElementHull } from '../../lib/connectorGeometry';
+import { edgePoint, paddedEdgePoint, projectedElementHull } from '../../lib/connectorGeometry';
 import { anchorOfElement } from '../../model/ops';
 import type { ConnectorEl, Element } from '../../model/types';
 import type { ShapeProps } from './AssetShape';
@@ -18,7 +18,7 @@ export function ConnectorShape({
   if (!fa || !ta) return null;
   const a = project(fa, view), b = project(ta, view);
   const A = edgePoint(a, b, projectedElementHull(from, elements, view));
-  const B = edgePoint(b, a, projectedElementHull(to, elements, view));
+  const B = paddedEdgePoint(b, a, projectedElementHull(to, elements, view), 12);
   const mid = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
   const dash = el.style === 'dashed' ? '10 6' : el.style === 'dotted' ? '0.1 9' : undefined;
   const markerId = `arrow-${el.id}`;
