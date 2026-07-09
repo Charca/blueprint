@@ -1,11 +1,12 @@
-import { project } from '../../lib/projection';
+import { CELL, planeMatrix, project } from '../../lib/projection';
 import {
   connectorEndHead,
   connectorPathD,
   connectorRoute,
   connectorRoutePoints,
   connectorStartHead,
-  projectedElementHull,
+  planeElementHull,
+  planePoint,
 } from '../../lib/connectorGeometry';
 import { anchorOfElement } from '../../model/ops';
 import type { ConnectorEl, ConnectorHead, Element } from '../../model/types';
@@ -66,17 +67,18 @@ export function ConnectorShape({
   if (!from || !to) return null;
   const fa = anchorOfElement(from, elements), ta = anchorOfElement(to, elements);
   if (!fa || !ta) return null;
-  const a = project(fa, view), b = project(ta, view);
+  const a = planePoint(fa), b = planePoint(ta);
   const route = connectorRoute(el);
   const points = connectorRoutePoints(
     a,
     b,
-    projectedElementHull(from, elements, view),
-    projectedElementHull(to, elements, view),
+    planeElementHull(from, elements),
+    planeElementHull(to, elements),
     route,
   );
   const d = connectorPathD(points, route === 'elbow');
-  const mid = points[Math.floor(points.length / 2)] ?? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  const midPlane = points[Math.floor(points.length / 2)] ?? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  const mid = project({ x: midPlane.x / CELL, y: midPlane.y / CELL }, view);
   const dash = el.style === 'dashed' ? '10 6' : el.style === 'dotted' ? '0.1 9' : undefined;
   const markerId = `connector-${el.id}`;
   const startHead = connectorStartHead(el);
@@ -94,15 +96,17 @@ export function ConnectorShape({
       <defs>
         {markerHeads.map((head) => <ConnectorMarker key={head} id={markerId} head={head} color={stroke} />)}
       </defs>
-      <path d={d} fill="none" stroke="transparent" strokeWidth={14} strokeLinejoin="round" strokeLinecap="round" />
-      <path
-        d={d}
-        fill="none"
-        stroke={stroke} strokeWidth={3}
-        strokeDasharray={dash} strokeLinecap="round" strokeLinejoin="round"
-        markerStart={markerRef(markerId, startHead)}
-        markerEnd={markerRef(markerId, endHead)}
-      />
+      <g transform={planeMatrix({ x: 0, y: 0 }, view)}>
+        <path d={d} fill="none" stroke="transparent" strokeWidth={14} strokeLinejoin="round" strokeLinecap="round" />
+        <path
+          d={d}
+          fill="none"
+          stroke={stroke} strokeWidth={3}
+          strokeDasharray={dash} strokeLinecap="round" strokeLinejoin="round"
+          markerStart={markerRef(markerId, startHead)}
+          markerEnd={markerRef(markerId, endHead)}
+        />
+      </g>
       {el.label && (
         <g transform={`translate(${mid.x} ${mid.y})`}>
           <rect x={-labelW / 2} y={-13} width={labelW} height={26} rx={13} fill={el.color} />

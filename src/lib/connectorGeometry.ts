@@ -1,5 +1,5 @@
 import { floorBounds } from '../model/ops';
-import { depth } from './projection';
+import { CELL, depth } from './projection';
 import type { ConnectorEl, Element } from '../model/types';
 import { project } from './projection';
 import type { Point, ViewState } from './projection';
@@ -123,6 +123,29 @@ export function connectorRoutePoints(
   const start = edgePoint(fromCenter, startToward, fromHull);
   const end = edgePoint(toCenter, endFrom, toHull);
   return compactPoints([start, ...centerRoute.slice(1, -1), end]);
+}
+
+export function planePoint(gridPoint: Point): Point {
+  return { x: gridPoint.x * CELL, y: gridPoint.y * CELL };
+}
+
+export function planeElementHull(el: Element, elements: Element[]): Point[] | null {
+  if (el.kind === 'connector') return null;
+  if (el.kind === 'floor') {
+    const bounds = floorBounds(elements, el);
+    return [
+      planePoint({ x: bounds.gridX - 0.5, y: bounds.gridY - 0.5 }),
+      planePoint({ x: bounds.gridX + bounds.width - 0.5, y: bounds.gridY - 0.5 }),
+      planePoint({ x: bounds.gridX + bounds.width - 0.5, y: bounds.gridY + bounds.depth - 0.5 }),
+      planePoint({ x: bounds.gridX - 0.5, y: bounds.gridY + bounds.depth - 0.5 }),
+    ];
+  }
+  return rectPoints(
+    (el.gridX - 0.5) * CELL,
+    (el.gridY - 0.5) * CELL,
+    (el.gridX + 0.5) * CELL,
+    (el.gridY + 0.5) * CELL,
+  );
 }
 
 export function connectorPathD(points: Point[], rounded = false, radius = ELBOW_RADIUS): string {

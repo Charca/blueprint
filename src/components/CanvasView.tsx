@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { project, unproject } from '../lib/projection';
+import { planeMatrix, project, unproject } from '../lib/projection';
 import type { Point } from '../lib/projection';
 import {
   connectorPathD,
@@ -8,6 +8,8 @@ import {
   DEFAULT_CONNECTOR_ROUTE,
   DEFAULT_CONNECTOR_START_HEAD,
   elementAtProjectedPoint,
+  planeElementHull,
+  planePoint,
   projectedElementHull,
 } from '../lib/connectorGeometry';
 import { uid } from '../lib/ids';
@@ -518,21 +520,21 @@ function ConnectorPreview({
   if (!from) return null;
   const fa = anchorOfElement(from, elements);
   if (!fa) return null;
-  const fromCenter = project(fa, view);
+  const fromCenter = planePoint(fa);
   const toAnchor = to ? anchorOfElement(to, elements) : null;
-  const toPoint = to && toAnchor ? project(toAnchor, view) : pointer;
+  const toPoint = to && toAnchor ? planePoint(toAnchor) : planePoint(unproject(pointer, view));
   const points = to && toAnchor
     ? connectorRoutePoints(
         fromCenter,
         toPoint,
-        projectedElementHull(from, elements, view),
-        projectedElementHull(to, elements, view),
+        planeElementHull(from, elements),
+        planeElementHull(to, elements),
         DEFAULT_CONNECTOR_ROUTE,
       )
     : connectorRoutePoints(
         fromCenter,
         toPoint,
-        projectedElementHull(from, elements, view),
+        planeElementHull(from, elements),
         null,
         DEFAULT_CONNECTOR_ROUTE,
       );
@@ -545,9 +547,11 @@ function ConnectorPreview({
           <path d="M0 0L10 5L0 10z" fill="#425066" />
         </marker>
       </defs>
-      <path d={d} fill="none"
-        stroke="#425066" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
-        markerEnd="url(#arrow-preview)" opacity={0.78} />
+      <g transform={planeMatrix({ x: 0, y: 0 }, view)}>
+        <path d={d} fill="none"
+          stroke="#425066" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
+          markerEnd="url(#arrow-preview)" opacity={0.78} />
+      </g>
     </g>
   );
 }

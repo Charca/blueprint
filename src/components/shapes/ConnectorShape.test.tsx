@@ -4,6 +4,7 @@ import type { ConnectorEl, Element } from '../../model/types';
 import { ConnectorShape } from './ConnectorShape';
 
 const TOP = { rotation: 0 as const, mode: 'top' as const };
+const ISO = { rotation: 0 as const, mode: 'iso' as const };
 const elements: Element[] = [
   { kind: 'asset', id: 'a', gridX: 0, gridY: 0, assetId: 'cube-plain', color: '#618AFF' },
   { kind: 'asset', id: 'b', gridX: 4, gridY: 2, assetId: 'cube-plain', color: '#618AFF' },
@@ -41,5 +42,12 @@ describe('ConnectorShape connector heads and routing', () => {
     );
     expect(html).toContain(' Q ');
     expect(html).toContain('stroke-linejoin="round"');
+  });
+
+  it('draws iso connectors inside the floor plane transform', () => {
+    const html = renderToStaticMarkup(
+      <ConnectorShape el={connector()} elements={elements} view={ISO} />,
+    );
+    expect(html).toContain('transform="matrix(0.8660254037844386 0.5 -0.8660254037844386 0.5 0 0)"');
   });
 });
