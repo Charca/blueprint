@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { AssetEl, ConnectorEl, Element, FloorEl, TagEl } from './types';
 import {
   addElement, addElementWithFloorMembership, anchorOf, createFromPlacing, deleteElements, duplicateElements,
-  floorBounds, moveElements, updateElement, setLabel,
+  duplicateElementsToRight, floorBounds, moveElements, updateElement, setLabel,
 } from './ops';
 
 const asset = (id: string, x = 0, y = 0): AssetEl =>
@@ -132,6 +132,16 @@ describe('ops', () => {
     expect(elements.filter((e) => e.kind === 'connector')).toHaveLength(1);
   });
 
+  it('duplicateElements includes connectors between duplicated endpoints', () => {
+    const els: Element[] = [asset('a'), asset('b'), conn('c', 'a', 'b')];
+    const { elements, newIds } = duplicateElements(els, ['a', 'b']);
+    expect(newIds).toHaveLength(3);
+    const cloneConn = elements.slice(3).find((e) => e.kind === 'connector') as ConnectorEl;
+    expect(cloneConn).toBeTruthy();
+    expect(cloneConn.fromId).not.toBe('a');
+    expect(cloneConn.toId).not.toBe('b');
+  });
+
   it('anchorOf centers floors and returns null for connectors', () => {
     const floor: Element = { kind: 'floor', id: 'f', gridX: 2, gridY: 4, width: 4, depth: 3, corners: 'sharp', color: '#fff' };
     expect(anchorOf(floor)).toEqual({ x: 3.5, y: 5 });
@@ -204,6 +214,31 @@ describe('ops', () => {
     const labeled = setLabel([asset('a')], 'a', 'DB');
     const { elements } = duplicateElements(labeled, ['a']);
     expect((elements[1] as AssetEl).label?.text).toBe('DB');
+  });
+
+  it('duplicateElementsToRight places clones to the right of the selected group with a gap', () => {
+    const els: Element[] = [asset('a', 0, 0), asset('b', 2, 1), conn('c', 'a', 'b')];
+    const { elements, newIds } = duplicateElementsToRight(els, ['a', 'b']);
+    expect(newIds).toHaveLength(3);
+    const clones = elements.slice(3);
+    expect(clones).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: 'asset', gridX: 4, gridY: 0 }),
+      expect.objectContaining({ kind: 'asset', gridX: 6, gridY: 1 }),
+    ]));
+    const cloneConn = clones.find((el) => el.kind === 'connector') as ConnectorEl;
+    const cloneAssets = clones.filter((el): el is AssetEl => el.kind === 'asset');
+    expect(cloneAssets.map((el) => el.id)).toContain(cloneConn.fromId);
+    expect(cloneAssets.map((el) => el.id)).toContain(cloneConn.toId);
+  });
+
+  it('duplicateElementsToRight preserves floor child membership within the duplicated set', () => {
+    const els: Element[] = [floor('f', 0, 0), { ...asset('a', 1, 1), parentId: 'f' }];
+    const { elements } = duplicateElementsToRight(els, ['f', 'a']);
+    const clones = elements.slice(2);
+    const cloneFloor = clones.find((el) => el.kind === 'floor') as FloorEl;
+    const cloneAsset = clones.find((el) => el.kind === 'asset') as AssetEl;
+    expect(cloneFloor.gridX).toBe(4);
+    expect(cloneAsset).toMatchObject({ gridX: 5, gridY: 1, parentId: cloneFloor.id });
   });
 
   it('setLabel returns the same array when nothing changes', () => {

@@ -1,7 +1,7 @@
 import { PRESETS } from '../lib/color';
 import { uid } from '../lib/ids';
 import type { Point } from '../lib/projection';
-import type { AssetEl, FloorEl, Label, Element, TagEl, TextEl } from './types';
+import type { AssetEl, ConnectorEl, FloorEl, Label, Element, TagEl, TextEl } from './types';
 
 export type FloorChildEl = AssetEl | TagEl | TextEl;
 export interface FloorBounds { gridX: number; gridY: number; width: number; depth: number }
@@ -11,6 +11,10 @@ const FLOOR_JOIN_GAP = 1;
 
 function isFloorChild(el: Element): el is FloorChildEl {
   return el.kind === 'asset' || el.kind === 'tag' || el.kind === 'text';
+}
+
+function isPositionedElement(el: Element): el is Exclude<Element, ConnectorEl> {
+  return el.kind !== 'connector';
 }
 
 export function floorChildren(els: Element[], floorId: string): FloorChildEl[] {
@@ -147,9 +151,14 @@ export function deleteElements(els: Element[], ids: string[]): Element[] {
 }
 
 export function duplicateElements(
-  els: Element[], ids: string[],
+  els: Element[], ids: string[], offset: Point = { x: 1, y: 1 },
 ): { elements: Element[]; newIds: string[] } {
   const idSet = new Set(ids);
+  for (const el of els) {
+    if (el.kind === 'connector' && idSet.has(el.fromId) && idSet.has(el.toId)) {
+      idSet.add(el.id);
+    }
+  }
   const map = new Map<string, string>();
   for (const el of els) if (idSet.has(el.id)) map.set(el.id, uid());
   const clones: Element[] = [];
@@ -159,13 +168,35 @@ export function duplicateElements(
       if (!map.has(el.fromId) || !map.has(el.toId)) continue;
       clones.push({ ...el, id: map.get(el.id)!, fromId: map.get(el.fromId)!, toId: map.get(el.toId)! });
     } else {
-      const clone = { ...el, id: map.get(el.id)!, gridX: el.gridX + 1, gridY: el.gridY + 1 };
+      const clone = { ...el, id: map.get(el.id)!, gridX: el.gridX + offset.x, gridY: el.gridY + offset.y };
       if (clone.kind === 'tag' && clone.attachedTo) clone.attachedTo = map.get(clone.attachedTo);
       if (isFloorChild(clone) && clone.parentId) clone.parentId = map.get(clone.parentId) ?? clone.parentId;
       clones.push(clone);
     }
   }
   return { elements: [...els, ...clones], newIds: clones.map((c) => c.id) };
+}
+
+function duplicateBounds(els: Element[], ids: string[]): FloorBounds | null {
+  const idSet = new Set(ids);
+  const movable = els.filter((el): el is Exclude<Element, ConnectorEl> => idSet.has(el.id) && isPositionedElement(el));
+  if (movable.length === 0) return null;
+  const bounds = movable.map((el): FloorBounds => {
+    if (el.kind === 'floor') return floorBounds(els, el);
+    return { gridX: el.gridX, gridY: el.gridY, width: 1, depth: 1 };
+  });
+  const minX = Math.min(...bounds.map((bound) => bound.gridX));
+  const maxX = Math.max(...bounds.map((bound) => bound.gridX + bound.width - 1));
+  const minY = Math.min(...bounds.map((bound) => bound.gridY));
+  const maxY = Math.max(...bounds.map((bound) => bound.gridY + bound.depth - 1));
+  return { gridX: minX, gridY: minY, width: maxX - minX + 1, depth: maxY - minY + 1 };
+}
+
+export function duplicateElementsToRight(
+  els: Element[], ids: string[],
+): { elements: Element[]; newIds: string[] } {
+  const bounds = duplicateBounds(els, ids);
+  return duplicateElements(els, ids, { x: bounds ? bounds.width + 1 : 1, y: 0 });
 }
 
 export function anchorOf(el: Element): Point | null {

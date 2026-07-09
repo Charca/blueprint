@@ -2,8 +2,24 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render } from '@testing-library/react';
 import { createDoc } from '../storage/local';
 import { useDocStore } from '../store/docStore';
-import type { Element } from '../model/types';
 import { CanvasView } from './CanvasView';
+import type { AssetEl, ConnectorEl, Doc, Element } from '../model/types';
+
+const asset = (id: string, x = 0, y = 0): AssetEl =>
+  ({ kind: 'asset', id, gridX: x, gridY: y, assetId: 'cube-plain', color: '#618AFF' });
+const conn = (id: string, fromId: string, toId: string): ConnectorEl =>
+  ({ kind: 'connector', id, fromId, toId, style: 'solid', color: '#425066' });
+
+function docWithElements(elements: Element[]): Doc {
+  return {
+    id: 'doc',
+    name: 'Test',
+    schemaVersion: 1,
+    view: { rotation: 0, mode: 'top' },
+    camera: { x: 0, y: 0, zoom: 1 },
+    elements,
+  };
+}
 
 describe('CanvasView', () => {
   beforeEach(() => {
@@ -11,6 +27,7 @@ describe('CanvasView', () => {
     localStorage.clear();
     SVGElement.prototype.setPointerCapture ??= vi.fn();
     useDocStore.setState({ doc: null, selection: [], placing: null, tool: 'select', connectFrom: null, past: [], future: [], snapshot: null });
+    Element.prototype.setPointerCapture ??= () => undefined;
   });
 
   it('centers a new empty canvas in the viewport', () => {
@@ -97,5 +114,68 @@ describe('CanvasView', () => {
     const input = container.querySelector('input')!;
     fireEvent.keyDown(input, { key: 'a' });
     expect(useDocStore.getState().tool).toBe('select');
+  });
+
+  it('selects elements with a marquee drag from empty canvas space', () => {
+    useDocStore.setState({
+      doc: docWithElements([asset('a', 1, 1), asset('b', 5, 5)]),
+      selection: [],
+      tool: 'select',
+    });
+    const { container } = render(<CanvasView />);
+    const svg = container.querySelector('svg')!;
+
+    fireEvent.pointerDown(svg, { clientX: 0, clientY: 0, pointerId: 1 });
+    fireEvent.pointerMove(svg, { clientX: 120, clientY: 120, pointerId: 1 });
+    expect(container.querySelector('rect[fill="#7C5CFF"]')).toBeTruthy();
+    fireEvent.pointerUp(svg, { pointerId: 1 });
+
+    expect(useDocStore.getState().selection).toEqual(['a']);
+  });
+
+  it('copies, deletes, and pastes the current selection to the right with a gap', () => {
+    useDocStore.setState({
+      doc: docWithElements([asset('a', 1, 1), asset('b', 3, 1), conn('c', 'a', 'b')]),
+      selection: ['a', 'b'],
+      tool: 'select',
+    });
+    render(<CanvasView />);
+
+    fireEvent.keyDown(window, { key: 'c', metaKey: true });
+    fireEvent.keyDown(window, { key: 'Delete' });
+    expect(useDocStore.getState().doc?.elements).toHaveLength(0);
+    fireEvent.keyDown(window, { key: 'v', metaKey: true });
+
+    const state = useDocStore.getState();
+    expect(state.doc?.elements).toHaveLength(3);
+    const cloneAssets = state.doc!.elements.filter((el): el is AssetEl => el.kind === 'asset');
+    const cloneConn = state.doc!.elements.find((el) => el.kind === 'connector') as ConnectorEl;
+    expect(cloneAssets).toEqual(expect.arrayContaining([
+      expect.objectContaining({ gridX: 5, gridY: 1 }),
+      expect.objectContaining({ gridX: 7, gridY: 1 }),
+    ]));
+    expect(cloneAssets.map((el) => el.id)).toContain(cloneConn.fromId);
+    expect(cloneAssets.map((el) => el.id)).toContain(cloneConn.toId);
+    expect(state.selection).toEqual(state.doc!.elements.map((el) => el.id));
+  });
+
+  it('duplicates the current selection to the right with a gap', () => {
+    useDocStore.setState({
+      doc: docWithElements([asset('a', 1, 1), asset('b', 3, 1)]),
+      selection: ['a', 'b'],
+      tool: 'select',
+    });
+    render(<CanvasView />);
+
+    fireEvent.keyDown(window, { key: 'd', metaKey: true });
+
+    const state = useDocStore.getState();
+    expect(state.doc?.elements).toHaveLength(4);
+    const clones = state.doc!.elements.filter((el) => el.id !== 'a' && el.id !== 'b') as AssetEl[];
+    expect(clones).toEqual(expect.arrayContaining([
+      expect.objectContaining({ gridX: 5, gridY: 1 }),
+      expect.objectContaining({ gridX: 7, gridY: 1 }),
+    ]));
+    expect(state.selection).toEqual(clones.map((el) => el.id));
   });
 });
