@@ -100,6 +100,16 @@ describe('ops', () => {
     expect(elements.filter((e) => e.kind === 'connector')).toHaveLength(1);
   });
 
+  it('duplicateElements includes connectors between duplicated endpoints', () => {
+    const els: Element[] = [asset('a'), asset('b'), conn('c', 'a', 'b')];
+    const { elements, newIds } = duplicateElements(els, ['a', 'b']);
+    expect(newIds).toHaveLength(3);
+    const cloneConn = elements.slice(3).find((e) => e.kind === 'connector') as ConnectorEl;
+    expect(cloneConn).toBeTruthy();
+    expect(cloneConn.fromId).not.toBe('a');
+    expect(cloneConn.toId).not.toBe('b');
+  });
+
   it('anchorOf centers floors and returns null for connectors', () => {
     const floor: Element = { kind: 'floor', id: 'f', gridX: 2, gridY: 4, width: 4, depth: 3, corners: 'sharp', color: '#fff' };
     expect(anchorOf(floor)).toEqual({ x: 3.5, y: 5 });
@@ -176,7 +186,7 @@ describe('ops', () => {
 
   it('duplicateElementsToRight places clones immediately to the right of the selected group', () => {
     const els: Element[] = [asset('a', 0, 0), asset('b', 2, 1), conn('c', 'a', 'b')];
-    const { elements, newIds } = duplicateElementsToRight(els, ['a', 'b', 'c']);
+    const { elements, newIds } = duplicateElementsToRight(els, ['a', 'b']);
     expect(newIds).toHaveLength(3);
     const clones = elements.slice(3);
     expect(clones).toEqual(expect.arrayContaining([

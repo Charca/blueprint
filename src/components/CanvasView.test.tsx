@@ -3,10 +3,12 @@ import { cleanup, fireEvent, render } from '@testing-library/react';
 import { createDoc } from '../storage/local';
 import { useDocStore } from '../store/docStore';
 import { CanvasView } from './CanvasView';
-import type { AssetEl, Doc, Element } from '../model/types';
+import type { AssetEl, ConnectorEl, Doc, Element } from '../model/types';
 
 const asset = (id: string, x = 0, y = 0): AssetEl =>
   ({ kind: 'asset', id, gridX: x, gridY: y, assetId: 'cube-plain', color: '#618AFF' });
+const conn = (id: string, fromId: string, toId: string): ConnectorEl =>
+  ({ kind: 'connector', id, fromId, toId, style: 'solid', color: '#425066' });
 
 function docWithElements(elements: Element[]): Doc {
   return {
@@ -93,8 +95,8 @@ describe('CanvasView', () => {
 
   it('copies, deletes, and pastes the current selection immediately to the right', () => {
     useDocStore.setState({
-      doc: docWithElements([asset('a', 1, 1)]),
-      selection: ['a'],
+      doc: docWithElements([asset('a', 1, 1), asset('b', 3, 1), conn('c', 'a', 'b')]),
+      selection: ['a', 'b'],
       tool: 'select',
     });
     render(<CanvasView />);
@@ -105,10 +107,16 @@ describe('CanvasView', () => {
     fireEvent.keyDown(window, { key: 'v', metaKey: true });
 
     const state = useDocStore.getState();
-    expect(state.doc?.elements).toHaveLength(1);
-    const clone = state.doc?.elements[0] as AssetEl;
-    expect(clone).toMatchObject({ kind: 'asset', gridX: 2, gridY: 1 });
-    expect(state.selection).toEqual([clone.id]);
+    expect(state.doc?.elements).toHaveLength(3);
+    const cloneAssets = state.doc!.elements.filter((el): el is AssetEl => el.kind === 'asset');
+    const cloneConn = state.doc!.elements.find((el) => el.kind === 'connector') as ConnectorEl;
+    expect(cloneAssets).toEqual(expect.arrayContaining([
+      expect.objectContaining({ gridX: 4, gridY: 1 }),
+      expect.objectContaining({ gridX: 6, gridY: 1 }),
+    ]));
+    expect(cloneAssets.map((el) => el.id)).toContain(cloneConn.fromId);
+    expect(cloneAssets.map((el) => el.id)).toContain(cloneConn.toId);
+    expect(state.selection).toEqual(state.doc!.elements.map((el) => el.id));
   });
 
   it('duplicates the current selection immediately to the right', () => {

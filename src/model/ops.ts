@@ -148,6 +148,11 @@ export function duplicateElements(
   els: Element[], ids: string[], offset: Point = { x: 1, y: 1 },
 ): { elements: Element[]; newIds: string[] } {
   const idSet = new Set(ids);
+  for (const el of els) {
+    if (el.kind === 'connector' && idSet.has(el.fromId) && idSet.has(el.toId)) {
+      idSet.add(el.id);
+    }
+  }
   const map = new Map<string, string>();
   for (const el of els) if (idSet.has(el.id)) map.set(el.id, uid());
   const clones: Element[] = [];

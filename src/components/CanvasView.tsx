@@ -126,7 +126,7 @@ export function CanvasView() {
         if (s.selection.length) {
           e.preventDefault();
           clipboardRef.current = {
-            elements: s.doc?.elements.filter((el) => s.selection.includes(el.id)) ?? [],
+            elements: s.doc?.elements ?? [],
             ids: [...s.selection],
           };
         }
