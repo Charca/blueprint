@@ -2,12 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render } from '@testing-library/react';
 import { createDoc } from '../storage/local';
 import { useDocStore } from '../store/docStore';
+import type { Element } from '../model/types';
 import { CanvasView } from './CanvasView';
 
 describe('CanvasView', () => {
   beforeEach(() => {
     cleanup();
     localStorage.clear();
+    SVGElement.prototype.setPointerCapture ??= vi.fn();
     useDocStore.setState({ doc: null, selection: [], placing: null, tool: 'select', connectFrom: null, past: [], future: [], snapshot: null });
   });
 
@@ -39,6 +41,43 @@ describe('CanvasView', () => {
     expect(useDocStore.getState().tool).toBe('connect');
     fireEvent.keyUp(window, { code: 'Space', key: ' ' });
     expect(svg.classList.contains('bp-tool-connect')).toBe(true);
+  });
+
+  it('selects newly placed nodes', () => {
+    const doc = createDoc('Place selection');
+    useDocStore.getState().openDoc(doc.id);
+    useDocStore.getState().setPlacing('floor');
+    const { container } = render(<CanvasView />);
+    const svg = container.querySelector('svg')!;
+
+    fireEvent.pointerDown(svg, { clientX: 0, clientY: 0, pointerId: 1 });
+
+    const elements = useDocStore.getState().doc!.elements;
+    expect(elements).toHaveLength(1);
+    expect(elements[0].kind).toBe('floor');
+    expect(useDocStore.getState().selection).toEqual([elements[0].id]);
+  });
+
+  it('highlights a floor drop target while placing a node over it', () => {
+    const doc = createDoc('Floor highlight');
+    useDocStore.getState().openDoc(doc.id);
+    useDocStore.setState((s) => ({
+      doc: s.doc ? {
+        ...s.doc,
+        view: { rotation: 0, mode: 'top' },
+        elements: [{
+          kind: 'floor', id: 'floor-1', gridX: 0, gridY: 0, width: 4, depth: 3,
+          sizeMode: 'manual', corners: 'sharp', color: '#9aa4b2',
+        } satisfies Element],
+      } : s.doc,
+    }));
+    useDocStore.getState().setPlacing('text:plain');
+    const { container } = render(<CanvasView />);
+    const svg = container.querySelector('svg')!;
+
+    fireEvent.pointerMove(svg, { clientX: 25, clientY: 25, pointerId: 1 });
+
+    expect(container.querySelector('rect[fill="#1fd9c6"][opacity="0.5"]')).not.toBeNull();
   });
 
   it('switches tools with V, H, and A shortcuts outside text inputs', () => {

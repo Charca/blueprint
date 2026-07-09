@@ -14,6 +14,7 @@ export interface SceneProps {
   elements: Element[];
   view: ViewState;
   selection?: Set<string>;
+  highlightedFloorId?: string | null;
   onElementPointerDown?: (e: PointerEvent, id: string) => void;
   onFloorResizePointerDown?: (e: PointerEvent, id: string, side: FloorResizeSide) => void;
   onElementDoubleClick?: (id: string) => void;
@@ -21,7 +22,7 @@ export interface SceneProps {
 }
 
 export function Scene({
-  elements, view, selection, onElementPointerDown, onFloorResizePointerDown, onElementDoubleClick, ghost,
+  elements, view, selection, highlightedFloorId, onElementPointerDown, onFloorResizePointerDown, onElementDoubleClick, ghost,
 }: SceneProps) {
   const assets = elements
     .filter((e) => e.kind === 'asset')
@@ -35,6 +36,7 @@ export function Scene({
     <>
       {elements.filter((e) => e.kind === 'floor').map((el) => (
         <FloorShape key={el.id} el={el} elements={elements} selected={selection?.has(el.id)}
+          highlighted={highlightedFloorId === el.id}
           onResizePointerDown={onFloorResizePointerDown} {...shared} />
       ))}
       {elements.filter((e) => e.kind === 'connector').map((el) => (

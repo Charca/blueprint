@@ -17,9 +17,10 @@ function cursorForSide(side: ResizeSide, mode: 'iso' | 'top') {
 }
 
 export function FloorShape({
-  el, elements, view, selected, onPointerDown, onDoubleClick, onResizePointerDown,
+  el, elements, view, selected, highlighted, onPointerDown, onDoubleClick, onResizePointerDown,
 }: ShapeProps<FloorEl> & {
   elements?: Element[];
+  highlighted?: boolean;
   onResizePointerDown?: (e: PointerEvent, id: string, side: ResizeSide) => void;
 }) {
   const bounds = elements ? floorBounds(elements, el) : el;
@@ -72,6 +73,12 @@ export function FloorShape({
           stroke={selected ? '#7C5CFF' : 'none'} strokeWidth={2}
           strokeDasharray={selected ? '6 4' : undefined}
         />
+        {highlighted && (
+          <rect
+            width={w} height={d} rx={rx} fill="#1fd9c6" opacity={0.5}
+            pointerEvents="none"
+          />
+        )}
       </g>
       {selected && onResizePointerDown && (
         <g transform={m}>

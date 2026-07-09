@@ -23,6 +23,43 @@ type Drag = PanDrag | MoveDrag | ConnectDrag | ResizeDrag;
 
 const MIN_FLOOR_SIZE = 1;
 
+function isFloorChild(el: ModelElement) {
+  return el.kind === 'asset' || el.kind === 'tag' || el.kind === 'text';
+}
+
+function containsCell(bounds: { gridX: number; gridY: number; width: number; depth: number }, cell: Point): boolean {
+  return cell.x >= bounds.gridX && cell.x < bounds.gridX + bounds.width &&
+    cell.y >= bounds.gridY && cell.y < bounds.gridY + bounds.depth;
+}
+
+function floorDropTargetAtCell(els: ModelElement[], cell: Point, ignoreIds = new Set<string>()): string | null {
+  const floors = els
+    .filter((el): el is FloorEl => el.kind === 'floor' && !ignoreIds.has(el.id))
+    .filter((floor) => containsCell(floorBounds(els, floor), cell))
+    .sort((a, b) => {
+      const ab = floorBounds(els, a);
+      const bb = floorBounds(els, b);
+      return ab.width * ab.depth - bb.width * bb.depth;
+    });
+  return floors[0]?.id ?? null;
+}
+
+function floorDropTargetForElements(els: ModelElement[], ids: string[]): string | null {
+  const ignoreIds = new Set(ids);
+  for (const id of ids) {
+    const el = els.find((candidate) => candidate.id === id);
+    if (el && isFloorChild(el)) {
+      const targetId = floorDropTargetAtCell(els, { x: el.gridX, y: el.gridY }, ignoreIds);
+      if (targetId) return targetId;
+    }
+  }
+  return null;
+}
+
+function canPlaceOnFloor(placing: string | null): boolean {
+  return !!placing && placing !== 'floor' && !placing.startsWith('connector');
+}
+
 function resizeFloorPatch(drag: ResizeDrag, pointer: Point): Partial<FloorEl> {
   const dx = Math.round(pointer.x - drag.start.x);
   const dy = Math.round(pointer.y - drag.start.y);
@@ -50,6 +87,7 @@ export function CanvasView() {
   const [drag, setDrag] = useState<Drag | null>(null);
   const [hoverCell, setHoverCell] = useState<Point | null>(null);
   const [hoverTargetId, setHoverTargetId] = useState<string | null>(null);
+  const [floorDropTargetId, setFloorDropTargetId] = useState<string | null>(null);
   const [labelEditId, setLabelEditId] = useState<string | null>(null);
   const [spacePan, setSpacePan] = useState(false);
 
@@ -173,7 +211,10 @@ export function CanvasView() {
     }
     if (s.placing) {
       const cell = cellAt(e);
-      s.apply((els) => addElementWithFloorMembership(els, createFromPlacing(s.placing!, cell)));
+      const created = createFromPlacing(s.placing, cell);
+      s.apply((els) => addElementWithFloorMembership(els, created));
+      s.select([created.id]);
+      setFloorDropTargetId(null);
       if (!e.shiftKey) s.setPlacing(null);
       return;
     }
@@ -253,7 +294,10 @@ export function CanvasView() {
         }
         if (placing) {
           const cell = cellAt(e);
-          s.apply((els) => addElementWithFloorMembership(els, createFromPlacing(placing, cell)));
+          const created = createFromPlacing(placing, cell);
+          s.apply((els) => addElementWithFloorMembership(els, created));
+          s.select([created.id]);
+          setFloorDropTargetId(null);
           if (!e.shiftKey) s.setPlacing(null);
           return;
         }
@@ -265,8 +309,14 @@ export function CanvasView() {
       }}
       onPointerMove={(e) => {
         const s = useDocStore.getState();
-        if (placing) { setHoverCell(cellAt(e)); return; }
+        if (placing) {
+          const cell = cellAt(e);
+          setHoverCell(cell);
+          setFloorDropTargetId(canPlaceOnFloor(placing) ? floorDropTargetAtCell(doc.elements, cell) : null);
+          return;
+        }
         if (!spacePan && s.tool === 'connect') {
+          setFloorDropTargetId(null);
           const ignoreId = drag?.kind === 'connect' ? drag.fromId : undefined;
           const target = targetAt(e, ignoreId);
           const targetId = target?.id ?? null;
@@ -281,9 +331,14 @@ export function CanvasView() {
           s.setCamera({ ...cam, x: drag.cx + e.clientX - drag.sx, y: drag.cy + e.clientY - drag.sy });
         } else if (drag.kind === 'move') {
           const c = cellAt(e);
+          const currentElements = s.doc?.elements ?? doc.elements;
           if (c.x !== drag.last.x || c.y !== drag.last.y) {
-            s.applyTransient((els) => moveElements(els, drag.ids, c.x - drag.last.x, c.y - drag.last.y));
+            const nextElements = moveElements(currentElements, drag.ids, c.x - drag.last.x, c.y - drag.last.y);
+            s.applyTransient(() => nextElements);
+            setFloorDropTargetId(floorDropTargetForElements(nextElements, drag.ids));
             setDrag({ ...drag, last: c, moved: true });
+          } else {
+            setFloorDropTargetId(floorDropTargetForElements(currentElements, drag.ids));
           }
         } else if (drag.kind === 'resize-floor') {
           const pointer = unproject(toWorld(e), doc.view);
@@ -305,9 +360,13 @@ export function CanvasView() {
           }));
         }
         setDrag(null);
+        setFloorDropTargetId(null);
       }}
       onPointerLeave={() => {
-        if (!drag) setHoverTargetId(null);
+        if (!drag) {
+          setHoverTargetId(null);
+          setFloorDropTargetId(null);
+        }
       }}
     >
       <g transform={`translate(${cam.x} ${cam.y}) scale(${cam.zoom})`}>
@@ -316,6 +375,7 @@ export function CanvasView() {
           elements={doc.elements}
           view={doc.view}
           selection={new Set(hoverTargetId ? [...selection, hoverTargetId] : selection)}
+          highlightedFloorId={floorDropTargetId}
           onElementPointerDown={onElementPointerDown}
           onFloorResizePointerDown={onFloorResizePointerDown}
           onElementDoubleClick={onElementDoubleClick}
