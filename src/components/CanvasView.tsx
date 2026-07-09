@@ -5,7 +5,7 @@ import { edgePoint, elementAtProjectedPoint, projectedElementHull } from '../lib
 import { uid } from '../lib/ids';
 import {
   anchorOfElement,
-  addElement, addElementWithFloorMembership, createFromPlacing, deleteElements, duplicateElements,
+  addElement, addElementWithFloorMembership, createFromPlacing, deleteElements, duplicateElementsToRight,
   moveElements, setLabel, updateElement,
 } from '../model/ops';
 import type { Element as ModelElement } from '../model/types';
@@ -17,7 +17,27 @@ import { Scene } from './Scene';
 interface PanDrag { kind: 'pan'; sx: number; sy: number; cx: number; cy: number }
 interface MoveDrag { kind: 'move'; last: Point; ids: string[]; moved: boolean }
 interface ConnectDrag { kind: 'connect'; fromId: string; pointer: Point; targetId: string | null }
-type Drag = PanDrag | MoveDrag | ConnectDrag;
+interface MarqueeDrag { kind: 'marquee'; start: Point; current: Point }
+type Drag = PanDrag | MoveDrag | ConnectDrag | MarqueeDrag;
+interface Clipboard { elements: ModelElement[]; ids: string[] }
+
+function rectFromPoints(a: Point, b: Point) {
+  const x = Math.min(a.x, b.x);
+  const y = Math.min(a.y, b.y);
+  return { x, y, width: Math.abs(a.x - b.x), height: Math.abs(a.y - b.y) };
+}
+
+function hullIntersectsRect(hull: Point[] | null, rect: ReturnType<typeof rectFromPoints>): boolean {
+  if (!hull || hull.length === 0) return false;
+  const xs = hull.map((point) => point.x);
+  const ys = hull.map((point) => point.y);
+  const left = Math.min(...xs);
+  const right = Math.max(...xs);
+  const top = Math.min(...ys);
+  const bottom = Math.max(...ys);
+  return right >= rect.x && left <= rect.x + rect.width &&
+    bottom >= rect.y && top <= rect.y + rect.height;
+}
 
 export function CanvasView() {
   const doc = useDocStore((s) => s.doc);
@@ -30,6 +50,7 @@ export function CanvasView() {
   const [hoverTargetId, setHoverTargetId] = useState<string | null>(null);
   const [labelEditId, setLabelEditId] = useState<string | null>(null);
   const [spacePan, setSpacePan] = useState(false);
+  const clipboardRef = useRef<Clipboard>({ elements: [], ids: [] });
 
   const cam = doc?.camera ?? { x: 0, y: 0, zoom: 1 };
   const effectiveTool = spacePan ? 'pan' : tool;
@@ -101,12 +122,37 @@ export function CanvasView() {
       } else if (meta && key === 'z') {
         e.preventDefault();
         if (e.shiftKey) s.redo(); else s.undo();
+      } else if (meta && key === 'c') {
+        if (s.selection.length) {
+          e.preventDefault();
+          clipboardRef.current = {
+            elements: s.doc?.elements.filter((el) => s.selection.includes(el.id)) ?? [],
+            ids: [...s.selection],
+          };
+        }
+      } else if (meta && key === 'v') {
+        if (clipboardRef.current.ids.length) {
+          e.preventDefault();
+          const clipboard = clipboardRef.current;
+          let created: string[] = [];
+          s.apply((els) => {
+            const r = duplicateElementsToRight(clipboard.elements, clipboard.ids);
+            created = r.newIds;
+            if (created.length === 0) return els;
+            return [...els, ...r.elements.slice(clipboard.elements.length)];
+          });
+          if (created.length) {
+            const pasted = useDocStore.getState().doc?.elements.filter((el) => created.includes(el.id)) ?? [];
+            clipboardRef.current = { elements: pasted, ids: created };
+            s.select(created);
+          }
+        }
       } else if (meta && key === 'd') {
         e.preventDefault();
         if (s.selection.length) {
           let created: string[] = [];
           s.apply((els) => {
-            const r = duplicateElements(els, s.selection);
+            const r = duplicateElementsToRight(els, s.selection);
             created = r.newIds;
             return r.elements;
           });
@@ -229,6 +275,10 @@ export function CanvasView() {
           return;
         }
         s.select([]);
+        if (s.tool === 'select') {
+          const point = toWorld(e);
+          setDrag({ kind: 'marquee', start: point, current: point });
+        }
       }}
       onPointerMove={(e) => {
         const s = useDocStore.getState();
@@ -252,11 +302,23 @@ export function CanvasView() {
             s.applyTransient((els) => moveElements(els, drag.ids, c.x - drag.last.x, c.y - drag.last.y));
             setDrag({ ...drag, last: c, moved: true });
           }
+        } else if (drag.kind === 'marquee') {
+          setDrag({ ...drag, current: toWorld(e) });
         }
       }}
       onPointerUp={() => {
         const s = useDocStore.getState();
         if (drag?.kind === 'move') s.commitTransient();
+        if (drag?.kind === 'marquee') {
+          const rect = rectFromPoints(drag.start, drag.current);
+          if (rect.width >= 4 || rect.height >= 4) {
+            const selected = doc.elements
+              .filter((el) => el.kind !== 'connector')
+              .filter((el) => hullIntersectsRect(projectedElementHull(el, doc.elements, doc.view), rect))
+              .map((el) => el.id);
+            s.select(selected);
+          }
+        }
         if (drag?.kind === 'connect' && drag.targetId && drag.targetId !== drag.fromId) {
           const fromId = drag.fromId;
           const toId = drag.targetId;
@@ -293,6 +355,23 @@ export function CanvasView() {
             view={doc.view}
           />
         )}
+        {drag?.kind === 'marquee' && (() => {
+          const rect = rectFromPoints(drag.start, drag.current);
+          return (
+            <rect
+              x={rect.x}
+              y={rect.y}
+              width={rect.width}
+              height={rect.height}
+              fill="#7C5CFF"
+              fillOpacity={0.08}
+              stroke="#7C5CFF"
+              strokeWidth={1.5 / cam.zoom}
+              strokeDasharray={`${5 / cam.zoom} ${4 / cam.zoom}`}
+              pointerEvents="none"
+            />
+          );
+        })()}
         {(() => {
           const editing = labelEditId ? doc.elements.find((x) => x.id === labelEditId) : null;
           if (!editing || (editing.kind !== 'asset' && editing.kind !== 'floor')) return null;

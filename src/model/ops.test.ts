@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { AssetEl, ConnectorEl, Element, FloorEl, TagEl } from './types';
 import {
   addElement, addElementWithFloorMembership, anchorOf, createFromPlacing, deleteElements, duplicateElements,
-  floorBounds, moveElements, updateElement, setLabel,
+  duplicateElementsToRight, floorBounds, moveElements, updateElement, setLabel,
 } from './ops';
 
 const asset = (id: string, x = 0, y = 0): AssetEl =>
@@ -172,6 +172,31 @@ describe('ops', () => {
     const labeled = setLabel([asset('a')], 'a', 'DB');
     const { elements } = duplicateElements(labeled, ['a']);
     expect((elements[1] as AssetEl).label?.text).toBe('DB');
+  });
+
+  it('duplicateElementsToRight places clones immediately to the right of the selected group', () => {
+    const els: Element[] = [asset('a', 0, 0), asset('b', 2, 1), conn('c', 'a', 'b')];
+    const { elements, newIds } = duplicateElementsToRight(els, ['a', 'b', 'c']);
+    expect(newIds).toHaveLength(3);
+    const clones = elements.slice(3);
+    expect(clones).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: 'asset', gridX: 3, gridY: 0 }),
+      expect.objectContaining({ kind: 'asset', gridX: 5, gridY: 1 }),
+    ]));
+    const cloneConn = clones.find((el) => el.kind === 'connector') as ConnectorEl;
+    const cloneAssets = clones.filter((el): el is AssetEl => el.kind === 'asset');
+    expect(cloneAssets.map((el) => el.id)).toContain(cloneConn.fromId);
+    expect(cloneAssets.map((el) => el.id)).toContain(cloneConn.toId);
+  });
+
+  it('duplicateElementsToRight preserves floor child membership within the duplicated set', () => {
+    const els: Element[] = [floor('f', 0, 0), { ...asset('a', 1, 1), parentId: 'f' }];
+    const { elements } = duplicateElementsToRight(els, ['f', 'a']);
+    const clones = elements.slice(2);
+    const cloneFloor = clones.find((el) => el.kind === 'floor') as FloorEl;
+    const cloneAsset = clones.find((el) => el.kind === 'asset') as AssetEl;
+    expect(cloneFloor.gridX).toBe(3);
+    expect(cloneAsset).toMatchObject({ gridX: 4, gridY: 1, parentId: cloneFloor.id });
   });
 
   it('setLabel returns the same array when nothing changes', () => {
