@@ -44,6 +44,26 @@ describe('ops', () => {
     });
   });
 
+  it('treats missing floor sizeMode as auto for backwards compatibility', () => {
+    const els: Element[] = [
+      floor('f', 10, 10),
+      { ...asset('a', 2, 3), parentId: 'f' },
+    ];
+    expect(floorBounds(els, els[0] as FloorEl)).toEqual({
+      gridX: 1, gridY: 2, width: 3, depth: 3,
+    });
+  });
+
+  it('uses explicit bounds for manual floors even with children', () => {
+    const els: Element[] = [
+      { ...floor('f', 10, 10), width: 2, depth: 2, sizeMode: 'manual' },
+      { ...asset('a', 2, 3), parentId: 'f' },
+    ];
+    expect(floorBounds(els, els[0] as FloorEl)).toEqual({
+      gridX: 10, gridY: 10, width: 2, depth: 2,
+    });
+  });
+
   it('dragging a floor moves its children', () => {
     const els: Element[] = [floor('f', 0, 0), { ...asset('a', 1, 1), parentId: 'f' }];
     const next = moveElements(els, ['f'], 2, 3);
@@ -68,6 +88,18 @@ describe('ops', () => {
     expect(floorBounds(next, next[0] as FloorEl)).toEqual({
       gridX: 0, gridY: 0, width: 5, depth: 3,
     });
+  });
+
+  it('uses manual floor bounds for membership containment', () => {
+    const els: Element[] = [
+      { ...floor('f', 10, 10), width: 2, depth: 2, sizeMode: 'manual' },
+      { ...asset('a', 1, 1), parentId: 'f' },
+      asset('b', 11, 11),
+      asset('c', 2, 2),
+    ];
+    const next = moveElements(els, ['b', 'c'], 0, 0);
+    expect((next[2] as AssetEl).parentId).toBe('f');
+    expect((next[3] as AssetEl).parentId).toBeUndefined();
   });
 
   it('deleteElements cascades to connectors and attached tags', () => {

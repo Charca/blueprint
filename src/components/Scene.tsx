@@ -6,6 +6,7 @@ import type { Element } from '../model/types';
 import { AssetShape } from './shapes/AssetShape';
 import { ConnectorShape } from './shapes/ConnectorShape';
 import { FloorShape } from './shapes/FloorShape';
+import type { FloorResizeSide } from './shapes/FloorShape';
 import { TagShape } from './shapes/TagShape';
 import { TextShape } from './shapes/TextShape';
 
@@ -14,12 +15,13 @@ export interface SceneProps {
   view: ViewState;
   selection?: Set<string>;
   onElementPointerDown?: (e: PointerEvent, id: string) => void;
+  onFloorResizePointerDown?: (e: PointerEvent, id: string, side: FloorResizeSide) => void;
   onElementDoubleClick?: (id: string) => void;
   ghost?: ReactNode;
 }
 
 export function Scene({
-  elements, view, selection, onElementPointerDown, onElementDoubleClick, ghost,
+  elements, view, selection, onElementPointerDown, onFloorResizePointerDown, onElementDoubleClick, ghost,
 }: SceneProps) {
   const assets = elements
     .filter((e) => e.kind === 'asset')
@@ -32,7 +34,8 @@ export function Scene({
   return (
     <>
       {elements.filter((e) => e.kind === 'floor').map((el) => (
-        <FloorShape key={el.id} el={el} elements={elements} selected={selection?.has(el.id)} {...shared} />
+        <FloorShape key={el.id} el={el} elements={elements} selected={selection?.has(el.id)}
+          onResizePointerDown={onFloorResizePointerDown} {...shared} />
       ))}
       {elements.filter((e) => e.kind === 'connector').map((el) => (
         <ConnectorShape key={el.id} el={el} elements={elements}

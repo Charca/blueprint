@@ -6,9 +6,10 @@ import { uid } from '../lib/ids';
 import {
   anchorOfElement,
   addElement, addElementWithFloorMembership, createFromPlacing, deleteElements, duplicateElements,
-  moveElements, setLabel, updateElement,
+  floorBounds, moveElements, setLabel, updateElement,
 } from '../model/ops';
-import type { Element as ModelElement } from '../model/types';
+import type { Element as ModelElement, FloorEl } from '../model/types';
+import type { FloorResizeSide } from './shapes/FloorShape';
 import { useDocStore } from '../store/docStore';
 import { Grid } from './Grid';
 import { LabelEditor } from './LabelEditor';
@@ -17,7 +18,28 @@ import { Scene } from './Scene';
 interface PanDrag { kind: 'pan'; sx: number; sy: number; cx: number; cy: number }
 interface MoveDrag { kind: 'move'; last: Point; ids: string[]; moved: boolean }
 interface ConnectDrag { kind: 'connect'; fromId: string; pointer: Point; targetId: string | null }
-type Drag = PanDrag | MoveDrag | ConnectDrag;
+interface ResizeDrag { kind: 'resize-floor'; id: string; side: FloorResizeSide; start: Point; bounds: { gridX: number; gridY: number; width: number; depth: number } }
+type Drag = PanDrag | MoveDrag | ConnectDrag | ResizeDrag;
+
+const MIN_FLOOR_SIZE = 1;
+
+function resizeFloorPatch(drag: ResizeDrag, pointer: Point): Partial<FloorEl> {
+  const dx = Math.round(pointer.x - drag.start.x);
+  const dy = Math.round(pointer.y - drag.start.y);
+  const b = drag.bounds;
+  if (drag.side === 'left') {
+    const width = Math.max(MIN_FLOOR_SIZE, b.width - dx);
+    return { sizeMode: 'manual', gridX: b.gridX + (b.width - width), gridY: b.gridY, width, depth: b.depth };
+  }
+  if (drag.side === 'right') {
+    return { sizeMode: 'manual', gridX: b.gridX, gridY: b.gridY, width: Math.max(MIN_FLOOR_SIZE, b.width + dx), depth: b.depth };
+  }
+  if (drag.side === 'top') {
+    const depth = Math.max(MIN_FLOOR_SIZE, b.depth - dy);
+    return { sizeMode: 'manual', gridX: b.gridX, gridY: b.gridY + (b.depth - depth), width: b.width, depth };
+  }
+  return { sizeMode: 'manual', gridX: b.gridX, gridY: b.gridY, width: b.width, depth: Math.max(MIN_FLOOR_SIZE, b.depth + dy) };
+}
 
 export function CanvasView() {
   const doc = useDocStore((s) => s.doc);
@@ -177,6 +199,17 @@ export function CanvasView() {
     }
   };
 
+  const onFloorResizePointerDown = (e: React.PointerEvent, id: string, side: FloorResizeSide) => {
+    const s = useDocStore.getState();
+    const floor = doc.elements.find((x): x is FloorEl => x.kind === 'floor' && x.id === id);
+    if (!floor) return;
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    s.select([id]);
+    s.beginTransient();
+    const bounds = floorBounds(doc.elements, floor);
+    setDrag({ kind: 'resize-floor', id, side, start: unproject(toWorld(e), doc.view), bounds });
+  };
+
   const onElementDoubleClick = (id: string) => {
     const s = useDocStore.getState();
     const el = doc.elements.find((x) => x.id === id);
@@ -252,11 +285,18 @@ export function CanvasView() {
             s.applyTransient((els) => moveElements(els, drag.ids, c.x - drag.last.x, c.y - drag.last.y));
             setDrag({ ...drag, last: c, moved: true });
           }
+        } else if (drag.kind === 'resize-floor') {
+          const pointer = unproject(toWorld(e), doc.view);
+          s.applyTransient((els) => els.map((el) => (
+            el.id === drag.id && el.kind === 'floor'
+              ? { ...el, ...resizeFloorPatch(drag, pointer) }
+              : el
+          )));
         }
       }}
       onPointerUp={() => {
         const s = useDocStore.getState();
-        if (drag?.kind === 'move') s.commitTransient();
+        if (drag?.kind === 'move' || drag?.kind === 'resize-floor') s.commitTransient();
         if (drag?.kind === 'connect' && drag.targetId && drag.targetId !== drag.fromId) {
           const fromId = drag.fromId;
           const toId = drag.targetId;
@@ -277,6 +317,7 @@ export function CanvasView() {
           view={doc.view}
           selection={new Set(hoverTargetId ? [...selection, hoverTargetId] : selection)}
           onElementPointerDown={onElementPointerDown}
+          onFloorResizePointerDown={onFloorResizePointerDown}
           onElementDoubleClick={onElementDoubleClick}
           ghost={placing && hoverCell ? (
             <g opacity={0.5} style={{ pointerEvents: 'none' }}>

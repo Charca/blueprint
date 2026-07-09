@@ -1,6 +1,6 @@
 import { Trash2 } from 'lucide-react';
 import { PRESETS } from '../lib/color';
-import { deleteElements, floorChildren, setLabel, updateElement } from '../model/ops';
+import { deleteElements, floorBounds, floorChildren, setLabel, updateElement } from '../model/ops';
 import type { ConnectorEl, FloorEl, Label, TagEl } from '../model/types';
 import { useDocStore } from '../store/docStore';
 
@@ -39,6 +39,7 @@ export function Inspector() {
         <FloorControls
           el={single}
           childCount={floorChildren(doc.elements, single.id).length}
+          bounds={floorBounds(doc.elements, single)}
           onPatch={(patch) => apply((els) => updateElement(els, single.id, patch))}
         />
       )}
@@ -92,24 +93,35 @@ export function Inspector() {
 }
 
 function FloorControls({
-  el, childCount, onPatch,
-}: { el: FloorEl; childCount: number; onPatch: (p: Partial<FloorEl>) => void }) {
+  el, childCount, bounds, onPatch,
+}: { el: FloorEl; childCount: number; bounds: Pick<FloorEl, 'gridX' | 'gridY' | 'width' | 'depth'>; onPatch: (p: Partial<FloorEl>) => void }) {
+  const mode = el.sizeMode ?? 'auto';
+  const manual = mode === 'manual' || childCount === 0;
   const num = (v: string, fallback: number) =>
-    Math.min(12, Math.max(1, parseInt(v, 10) || fallback));
+    Math.max(1, parseInt(v, 10) || fallback);
+  const switchMode = (sizeMode: 'auto' | 'manual') => {
+    if (sizeMode === 'manual') onPatch({ sizeMode, ...bounds });
+    else onPatch({ sizeMode });
+  };
   return (
     <>
       <div className="bp-insp-row">
-        {childCount > 0 ? (
-          <span className="bp-insp-note">Auto-sized around {childCount} item{childCount === 1 ? '' : 's'}</span>
-        ) : (
-          <>
-            <label>W <input type="number" min={1} max={12} value={el.width}
-              onChange={(e) => onPatch({ width: num(e.target.value, el.width) })} /></label>
-            <label>D <input type="number" min={1} max={12} value={el.depth}
-              onChange={(e) => onPatch({ depth: num(e.target.value, el.depth) })} /></label>
-          </>
+        {(['auto', 'manual'] as const).map((sizeMode) => (
+          <button key={sizeMode} className={`bp-chip${mode === sizeMode ? ' bp-active' : ''}`}
+            onClick={() => switchMode(sizeMode)}>{sizeMode}</button>
+        ))}
+        {mode === 'auto' && childCount > 0 && (
+          <span className="bp-insp-note">Sized around {childCount} item{childCount === 1 ? '' : 's'}</span>
         )}
       </div>
+      {manual && (
+        <div className="bp-insp-row">
+          <label>W <input type="number" min={1} value={el.width}
+            onChange={(e) => onPatch({ sizeMode: 'manual', width: num(e.target.value, el.width) })} /></label>
+          <label>D <input type="number" min={1} value={el.depth}
+            onChange={(e) => onPatch({ sizeMode: 'manual', depth: num(e.target.value, el.depth) })} /></label>
+        </div>
+      )}
       <div className="bp-insp-row">
         {(['sharp', 'rounded', 'pill'] as const).map((c) => (
           <button key={c} className={`bp-chip${el.corners === c ? ' bp-active' : ''}`}
