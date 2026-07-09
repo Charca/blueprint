@@ -6,7 +6,7 @@ import type { Label } from '../../model/types';
 
 const TAG_MAX_CHARS = 22;
 const TEXT_MAX_CHARS = 24;
-const TAG_CHAR_WIDTH = 8;
+const TAG_CHAR_WIDTH = 7;
 const TAG_HORIZONTAL_PADDING = 14;
 const TAG_LINE_HEIGHT = 16;
 const TAG_VERTICAL_PADDING = 6;
@@ -37,8 +37,9 @@ export function LabelView({
   }
 
   const lines = renderedLines(label.text, TAG_MAX_CHARS);
-  const longestLine = lines.reduce((max, line) => Math.max(max, line.length), 0);
-  const w = longestLine * TAG_CHAR_WIDTH + TAG_HORIZONTAL_PADDING * 2;
+  const lineWidths = lines.map((line) => line.length * TAG_CHAR_WIDTH);
+  const longestLineWidth = lineWidths.reduce((max, width) => Math.max(max, width), 0);
+  const w = longestLineWidth + TAG_HORIZONTAL_PADDING * 2;
   const h = lines.length * TAG_LINE_HEIGHT + TAG_VERTICAL_PADDING * 2;
   const dark = hexToHsl(label.color).l <= 0.7;
   const dir = label.orientation === 'right' ? 1 : -1;
@@ -56,7 +57,12 @@ export function LabelView({
           <text y={firstTextY} textAnchor="middle" fontSize={13} fontWeight={700}
             fill={dark ? '#ffffff' : '#2a3242'}>
             {lines.map((line, index) => (
-              <tspan key={index} x={0} dy={index === 0 ? 0 : TAG_LINE_HEIGHT}>{line}</tspan>
+              <tspan
+                key={index}
+                x={0}
+                dy={index === 0 ? 0 : TAG_LINE_HEIGHT}
+                textLength={lineWidths[index] || undefined}
+              >{line}</tspan>
             ))}
           </text>
         </g>

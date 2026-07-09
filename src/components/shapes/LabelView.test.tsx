@@ -12,11 +12,12 @@ const textLabel = (text: string): Label => ({
 });
 
 describe('LabelView', () => {
-  it('uses fixed tag padding and keeps short tag geometry unchanged', () => {
+  it('uses fixed tag padding and keeps short tag geometry bounded', () => {
     const markup = renderToStaticMarkup(<svg><LabelView label={tagLabel('Label')} anchor={{ x: 60, y: 129 }} /></svg>);
-    expect(markup).toContain('width="68"');
+    expect(markup).toContain('width="63"');
     expect(markup).toContain('height="28"');
-    expect(markup).toContain('translate(44 0)');
+    expect(markup).toContain('translate(41.5 0)');
+    expect(markup).toContain('textLength="35"');
   });
 
   it('wraps long tag labels to at most two centered lines with bounded width', () => {
@@ -24,7 +25,7 @@ describe('LabelView', () => {
       <svg><LabelView label={tagLabel('This is a very long label that should wrap neatly')} anchor={{ x: 0, y: 0 }} align="center" /></svg>,
     );
     expect(markup).toContain('translate(0 0)');
-    expect(markup).toContain('width="204"');
+    expect(markup).toContain('width="182"');
     expect(markup).toContain('height="44"');
     expect((markup.match(/<tspan/g) ?? [])).toHaveLength(2);
     expect(markup).not.toContain('very long label that should wrap neatly');
