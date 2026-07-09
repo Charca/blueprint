@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { createDoc, deleteDoc, listDocs, renameDoc } from '../storage/local';
+import { seedPreviewDocsIfNeeded } from '../storage/previewSeeds';
 import { useAppStore } from '../store/appStore';
 
 export function Home() {
-  const [docs, setDocs] = useState(() => listDocs());
+  const [docs, setDocs] = useState(() => {
+    seedPreviewDocsIfNeeded();
+    return listDocs();
+  });
   const openDoc = useAppStore((s) => s.openDoc);
 
   const refresh = () => setDocs(listDocs());

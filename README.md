@@ -33,3 +33,7 @@ gray/blue/teal presets approximate the kit's original variants.
 
 Documents are JSON in localStorage (`blueprint:index`,
 `blueprint:doc:<id>`), `schemaVersion: 1`.
+
+Cloudflare Workers PR preview URLs seed three sample canvases when storage is
+empty. Existing browser storage is left unchanged. For local verification, add
+`?bp-preview-seeds=1` to the app URL before the first Home render.

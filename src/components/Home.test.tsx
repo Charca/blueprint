@@ -8,6 +8,7 @@ describe('Home', () => {
   beforeEach(() => {
     cleanup();
     localStorage.clear();
+    window.history.pushState({}, '', '/');
     useAppStore.setState({ docId: null });
   });
 
@@ -28,5 +29,13 @@ describe('Home', () => {
     render(<Home />);
     fireEvent.click(screen.getByText('Target'));
     expect(useAppStore.getState().docId).toBe(doc.id);
+  });
+
+  it('lists preview seed canvases for an empty preview workspace', () => {
+    window.history.pushState({}, '', '/?bp-preview-seeds=1');
+    render(<Home />);
+    expect(screen.getByText('PR Preview Architecture')).toBeTruthy();
+    expect(screen.getByText('Service Topology')).toBeTruthy();
+    expect(screen.getByText('Design System Sampler')).toBeTruthy();
   });
 });

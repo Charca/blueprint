@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createDoc, deleteDoc, listDocs, loadDoc, renameDoc, saveDoc } from './local';
+import {
+  createPreviewSeedDocs,
+  isCloudflarePreviewEnvironment,
+  seedPreviewDocsIfNeeded,
+} from './previewSeeds';
 
 describe('storage/local', () => {
   beforeEach(() => localStorage.clear());
@@ -49,5 +54,66 @@ describe('storage/local', () => {
     const doc = createDoc('V');
     saveDoc({ ...doc, view: { rotation: 2, mode: 'top' } });
     expect(loadDoc(doc.id)?.view).toEqual({ rotation: 0, mode: 'iso' });
+  });
+
+  it('seeds three preview docs when enabled and the workspace is empty', () => {
+    expect(seedPreviewDocsIfNeeded({ enabled: true })).toBe(true);
+    expect(listDocs().map((doc) => doc.name)).toEqual([
+      'PR Preview Architecture',
+      'Service Topology',
+      'Design System Sampler',
+    ]);
+    for (const meta of listDocs()) {
+      const doc = loadDoc(meta.id);
+      expect(doc?.schemaVersion).toBe(1);
+      expect(doc?.elements.some((el) => el.kind === 'asset')).toBe(true);
+      expect(doc?.elements.some((el) => el.kind === 'connector')).toBe(true);
+    }
+  });
+
+  it('does not seed when existing docs are present', () => {
+    createDoc('Existing');
+    expect(seedPreviewDocsIfNeeded({ enabled: true })).toBe(false);
+    expect(listDocs().map((doc) => doc.name)).toEqual(['Existing']);
+  });
+
+  it('does not seed when the preview gate is disabled', () => {
+    expect(seedPreviewDocsIfNeeded({ enabled: false })).toBe(false);
+    expect(listDocs()).toEqual([]);
+  });
+
+  it('keeps preview seed ids and index entries aligned', () => {
+    const docs = createPreviewSeedDocs();
+    expect(docs).toHaveLength(3);
+    expect(new Set(docs.map((doc) => doc.id)).size).toBe(3);
+    for (const doc of docs) {
+      const ids = new Set(doc.elements.map((el) => el.id));
+      expect(ids.size).toBe(doc.elements.length);
+      for (const el of doc.elements) {
+        if (el.kind === 'connector') {
+          expect(ids.has(el.fromId)).toBe(true);
+          expect(ids.has(el.toId)).toBe(true);
+        }
+      }
+    }
+  });
+
+  it('detects Cloudflare preview URLs and local override URLs only', () => {
+    expect(isCloudflarePreviewEnvironment({
+      hostname: '7f38f2-blueprint.charca.workers.dev',
+      search: '',
+    })).toBe(true);
+    expect(isCloudflarePreviewEnvironment({
+      hostname: 'blueprint.charca.workers.dev',
+      search: '',
+    })).toBe(false);
+    expect(isCloudflarePreviewEnvironment({
+      hostname: 'localhost',
+      search: '?bp-preview-seeds=1',
+    })).toBe(true);
+    expect(isCloudflarePreviewEnvironment({
+      hostname: 'localhost',
+      search: '',
+    })).toBe(false);
   });
 });
