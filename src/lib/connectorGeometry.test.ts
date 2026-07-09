@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest';
 import type { AssetEl, Element } from '../model/types';
 import { anchorOfElement } from '../model/ops';
 import { project } from './projection';
-import { DEFAULT_CONNECTOR_ROUTE, connectorPathD, connectorRoutePoints, edgePoint, elementAtProjectedPoint, projectedElementHull } from './connectorGeometry';
+import {
+  DEFAULT_CONNECTOR_ROUTE,
+  connectorPathD,
+  connectorRoutePoints,
+  edgePoint,
+  elementAtProjectedPoint,
+  padConnectorHeadEndpoints,
+  projectedElementHull,
+} from './connectorGeometry';
 
 const ISO = { rotation: 0 as const, mode: 'iso' as const };
 
@@ -50,6 +58,17 @@ describe('connectorGeometry', () => {
       { x: 75, y: 80 },
       end,
     ]);
+  });
+
+  it('pads connector endpoints that have heads away from shapes', () => {
+    const points = [{ x: 0, y: 0 }, { x: 50, y: 0 }, { x: 50, y: 80 }, { x: 100, y: 80 }];
+    expect(padConnectorHeadEndpoints(points, false, true, 12)).toEqual([
+      points[0],
+      points[1],
+      points[2],
+      { x: 88, y: 80 },
+    ]);
+    expect(padConnectorHeadEndpoints(points, true, false, 12)[0]).toEqual({ x: 12, y: 0 });
   });
 
   it('finds the topmost connectable element under a projected point', () => {

@@ -8,6 +8,7 @@ import {
   DEFAULT_CONNECTOR_ROUTE,
   DEFAULT_CONNECTOR_START_HEAD,
   elementAtProjectedPoint,
+  padConnectorHeadEndpoints,
   planeElementHull,
   planePoint,
   projectedElementHull,
@@ -562,7 +563,10 @@ function ConnectorPreview({
         null,
         DEFAULT_CONNECTOR_ROUTE,
       );
-  const d = connectorPathD(points, DEFAULT_CONNECTOR_ROUTE === 'elbow');
+  const d = connectorPathD(
+    padConnectorHeadEndpoints(points, false, true),
+    DEFAULT_CONNECTOR_ROUTE === 'elbow',
+  );
   return (
     <g pointerEvents="none">
       <defs>

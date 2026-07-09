@@ -10,6 +10,7 @@ const ASSET_TOP = 85;
 const ASSET_RIGHT = 60;
 const ASSET_BOTTOM = 35;
 const ELBOW_RADIUS = 18;
+const CONNECTOR_HEAD_PADDING = 18;
 
 export const DEFAULT_CONNECTOR_START_HEAD = 'none' as const;
 export const DEFAULT_CONNECTOR_END_HEAD = 'arrow' as const;
@@ -147,6 +148,29 @@ export function planeElementHull(el: Element, elements: Element[]): Point[] | nu
     (el.gridX + 0.5) * CELL,
     (el.gridY + 0.5) * CELL,
   );
+}
+
+function paddedEndpoint(point: Point, toward: Point, padding: number): Point {
+  const len = Math.hypot(toward.x - point.x, toward.y - point.y);
+  if (len <= 1e-6) return point;
+  const distance = Math.min(padding, len / 2);
+  return {
+    x: point.x + ((toward.x - point.x) / len) * distance,
+    y: point.y + ((toward.y - point.y) / len) * distance,
+  };
+}
+
+export function padConnectorHeadEndpoints(
+  points: Point[],
+  startHasHead: boolean,
+  endHasHead: boolean,
+  padding = CONNECTOR_HEAD_PADDING,
+): Point[] {
+  if (points.length < 2 || (!startHasHead && !endHasHead)) return points;
+  const next = [...points];
+  if (startHasHead) next[0] = paddedEndpoint(points[0], points[1], padding);
+  if (endHasHead) next[next.length - 1] = paddedEndpoint(points[points.length - 1], points[points.length - 2], padding);
+  return compactPoints(next);
 }
 
 export function connectorPathD(points: Point[], rounded = false, radius = ELBOW_RADIUS): string {

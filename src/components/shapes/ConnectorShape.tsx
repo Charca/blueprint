@@ -5,6 +5,7 @@ import {
   connectorRoute,
   connectorRoutePoints,
   connectorStartHead,
+  padConnectorHeadEndpoints,
   planeElementHull,
   planePoint,
 } from '../../lib/connectorGeometry';
@@ -79,13 +80,14 @@ export function ConnectorShape({
     route,
     el.elbowOffset,
   );
-  const d = connectorPathD(points, route === 'elbow');
-  const midPlane = points[Math.floor(points.length / 2)] ?? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-  const mid = project({ x: midPlane.x / CELL, y: midPlane.y / CELL }, view);
   const dash = el.style === 'dashed' ? '10 6' : el.style === 'dotted' ? '0.1 9' : undefined;
   const markerId = `connector-${el.id}`;
   const startHead = connectorStartHead(el);
   const endHead = connectorEndHead(el);
+  const paddedPoints = padConnectorHeadEndpoints(points, startHead !== 'none', endHead !== 'none');
+  const d = connectorPathD(paddedPoints, route === 'elbow');
+  const midPlane = points[Math.floor(points.length / 2)] ?? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  const mid = project({ x: midPlane.x / CELL, y: midPlane.y / CELL }, view);
   const stroke = selected ? '#7C5CFF' : el.color;
   const markerHeads = [...new Set([startHead, endHead])];
   const labelW = el.label ? el.label.length * 8 + 24 : 0;
