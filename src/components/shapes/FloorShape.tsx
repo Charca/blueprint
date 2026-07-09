@@ -1,3 +1,4 @@
+import type { PointerEvent } from 'react';
 import { CELL, planeMatrix, project } from '../../lib/projection';
 import { derivePalette } from '../../lib/color';
 import { floorBounds } from '../../model/ops';
@@ -6,10 +7,22 @@ import type { ShapeProps } from './AssetShape';
 import { LabelView } from './LabelView';
 
 const FLOOR_LABEL_GAP = 42;
+const HANDLE = 12;
+
+type ResizeSide = 'left' | 'right' | 'top' | 'bottom';
+
+function cursorForSide(side: ResizeSide, mode: 'iso' | 'top') {
+  if (mode === 'top') return side === 'left' || side === 'right' ? 'ew-resize' : 'ns-resize';
+  return side === 'left' || side === 'right' ? 'nwse-resize' : 'nesw-resize';
+}
 
 export function FloorShape({
-  el, elements, view, selected, onPointerDown, onDoubleClick,
-}: ShapeProps<FloorEl> & { elements?: Element[] }) {
+  el, elements, view, selected, highlighted, onPointerDown, onDoubleClick, onResizePointerDown,
+}: ShapeProps<FloorEl> & {
+  elements?: Element[];
+  highlighted?: boolean;
+  onResizePointerDown?: (e: PointerEvent, id: string, side: ResizeSide) => void;
+}) {
   const bounds = elements ? floorBounds(elements, el) : el;
   const corner = { x: bounds.gridX - 0.5, y: bounds.gridY - 0.5 };
   const m = planeMatrix(corner, view);
@@ -60,8 +73,33 @@ export function FloorShape({
           stroke={selected ? '#7C5CFF' : 'none'} strokeWidth={2}
           strokeDasharray={selected ? '6 4' : undefined}
         />
+        {highlighted && (
+          <rect
+            width={w} height={d} rx={rx} fill="#1fd9c6" opacity={0.5}
+            pointerEvents="none"
+          />
+        )}
       </g>
+      {selected && onResizePointerDown && (
+        <g transform={m}>
+          {([
+            ['left', { x: -HANDLE / 2, y: 0, width: HANDLE, height: d }],
+            ['right', { x: w - HANDLE / 2, y: 0, width: HANDLE, height: d }],
+            ['top', { x: 0, y: -HANDLE / 2, width: w, height: HANDLE }],
+            ['bottom', { x: 0, y: d - HANDLE / 2, width: w, height: HANDLE }],
+          ] as const).map(([side, props]) => (
+            <rect key={side} {...props} fill="transparent"
+              style={{ cursor: cursorForSide(side, view.mode) }}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                onResizePointerDown(e, el.id, side);
+              }} />
+          ))}
+        </g>
+      )}
       {el.label && <LabelView label={el.label} anchor={labelAnchor} align="center" />}
     </g>
   );
 }
+
+export type { ResizeSide as FloorResizeSide };

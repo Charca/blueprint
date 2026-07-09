@@ -34,6 +34,8 @@ export interface FloorEl {
   kind: 'floor'; id: string;
   gridX: number; gridY: number;
   width: number; depth: number;
+  /** Missing values in existing documents are treated as 'auto'. */
+  sizeMode?: 'auto' | 'manual';
   corners: 'sharp' | 'rounded' | 'pill';
   color: string;
   label?: Label;

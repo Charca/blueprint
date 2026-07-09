@@ -22,6 +22,9 @@ export function floorChildren(els: Element[], floorId: string): FloorChildEl[] {
 }
 
 export function floorBounds(els: Element[], floor: FloorEl): FloorBounds {
+  if (floor.sizeMode === 'manual') {
+    return { gridX: floor.gridX, gridY: floor.gridY, width: floor.width, depth: floor.depth };
+  }
   const children = floorChildren(els, floor.id);
   if (children.length === 0) {
     return { gridX: floor.gridX, gridY: floor.gridY, width: floor.width, depth: floor.depth };
@@ -46,6 +49,9 @@ function containsCell(bounds: FloorBounds, cell: Point): boolean {
 }
 
 function floorBoundsForMembership(els: Element[], floor: FloorEl, childId: string): FloorBounds {
+  if (floor.sizeMode === 'manual') {
+    return { gridX: floor.gridX, gridY: floor.gridY, width: floor.width, depth: floor.depth };
+  }
   const siblings = floorChildren(els, floor.id).filter((child) => child.id !== childId);
   if (siblings.length === 0) {
     return { gridX: floor.gridX, gridY: floor.gridY, width: floor.width, depth: floor.depth };
@@ -218,7 +224,7 @@ export function createFromPlacing(placing: string, cell: Point): Element {
   }
   switch (placing) {
     case 'floor':
-      return { kind: 'floor', ...base, width: 4, depth: 3, corners: 'sharp', color: PRESETS.gray };
+      return { kind: 'floor', ...base, width: 4, depth: 3, sizeMode: 'auto', corners: 'sharp', color: PRESETS.gray };
     case 'tag:bubble':
       return { kind: 'tag', ...base, text: 'Label', color: '#3479FF', style: 'bubble' };
     case 'tag:tips':
