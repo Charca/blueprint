@@ -59,9 +59,9 @@ describe('storage/local', () => {
   it('seeds three preview docs when enabled and the workspace is empty', () => {
     expect(seedPreviewDocsIfNeeded({ enabled: true })).toBe(true);
     expect(listDocs().map((doc) => doc.name)).toEqual([
-      'PR Preview Architecture',
-      'Service Topology',
-      'Design System Sampler',
+      'Screenshot Layout',
+      'Release Flow',
+      'Support Map',
     ]);
     for (const meta of listDocs()) {
       const doc = loadDoc(meta.id);
