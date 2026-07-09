@@ -41,10 +41,19 @@ export interface FloorEl {
   label?: Label;
 }
 
+export type ConnectorHead = 'none' | 'triangle' | 'arrow' | 'circle' | 'square';
+export type ConnectorRoute = 'sharp' | 'elbow';
+
 export interface ConnectorEl {
   kind: 'connector'; id: string;
   fromId: string; toId: string;
   style: 'solid' | 'dashed' | 'dotted';
+  /** Missing values in existing documents are treated as 'none'. */
+  startHead?: ConnectorHead;
+  /** Missing values in existing documents are treated as the current arrow default. */
+  endHead?: ConnectorHead;
+  /** Missing values in existing documents are treated as 'sharp'. */
+  route?: ConnectorRoute;
   color: string;
   label?: string;
 }

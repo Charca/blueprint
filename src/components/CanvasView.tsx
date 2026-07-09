@@ -1,7 +1,15 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { project, unproject } from '../lib/projection';
 import type { Point } from '../lib/projection';
-import { edgePoint, elementAtProjectedPoint, projectedElementHull } from '../lib/connectorGeometry';
+import {
+  connectorPathD,
+  connectorRoutePoints,
+  DEFAULT_CONNECTOR_END_HEAD,
+  DEFAULT_CONNECTOR_ROUTE,
+  DEFAULT_CONNECTOR_START_HEAD,
+  elementAtProjectedPoint,
+  projectedElementHull,
+} from '../lib/connectorGeometry';
 import { uid } from '../lib/ids';
 import {
   anchorOfElement,
@@ -419,6 +427,9 @@ export function CanvasView() {
           const toId = drag.targetId;
           s.apply((els) => addElement(els, {
             kind: 'connector', id: uid(), fromId, toId, style: 'solid', color: '#425066',
+            startHead: DEFAULT_CONNECTOR_START_HEAD,
+            endHead: DEFAULT_CONNECTOR_END_HEAD,
+            route: DEFAULT_CONNECTOR_ROUTE,
           }));
         }
         setDrag(null);
@@ -510,10 +521,22 @@ function ConnectorPreview({
   const fromCenter = project(fa, view);
   const toAnchor = to ? anchorOfElement(to, elements) : null;
   const toPoint = to && toAnchor ? project(toAnchor, view) : pointer;
-  const start = edgePoint(fromCenter, toPoint, projectedElementHull(from, elements, view));
-  const end = to && toAnchor
-    ? edgePoint(toPoint, fromCenter, projectedElementHull(to, elements, view))
-    : toPoint;
+  const points = to && toAnchor
+    ? connectorRoutePoints(
+        fromCenter,
+        toPoint,
+        projectedElementHull(from, elements, view),
+        projectedElementHull(to, elements, view),
+        DEFAULT_CONNECTOR_ROUTE,
+      )
+    : connectorRoutePoints(
+        fromCenter,
+        toPoint,
+        projectedElementHull(from, elements, view),
+        null,
+        DEFAULT_CONNECTOR_ROUTE,
+      );
+  const d = connectorPathD(points);
   return (
     <g pointerEvents="none">
       <defs>
@@ -522,8 +545,8 @@ function ConnectorPreview({
           <path d="M0 0L10 5L0 10z" fill="#425066" />
         </marker>
       </defs>
-      <line x1={start.x} y1={start.y} x2={end.x} y2={end.y}
-        stroke="#425066" strokeWidth={3} strokeLinecap="round"
+      <path d={d} fill="none"
+        stroke="#425066" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
         markerEnd="url(#arrow-preview)" opacity={0.78} />
     </g>
   );
