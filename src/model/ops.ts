@@ -21,6 +21,18 @@ export function floorChildren(els: Element[], floorId: string): FloorChildEl[] {
   return els.filter((el): el is FloorChildEl => isFloorChild(el) && el.parentId === floorId);
 }
 
+export function floorTypeOf(floor: FloorEl): NonNullable<FloorEl['floorType']> {
+  return floor.floorType ?? 'flat';
+}
+
+export function floorShadowOf(floor: FloorEl): boolean {
+  return floor.floorShadow ?? true;
+}
+
+export function floorThickness(floor: FloorEl, mode: 'iso' | 'top'): number {
+  return mode === 'iso' && floorTypeOf(floor) === 'raised' ? 12 : 0;
+}
+
 export function floorBounds(els: Element[], floor: FloorEl): FloorBounds {
   if (floor.sizeMode === 'manual') {
     return { gridX: floor.gridX, gridY: floor.gridY, width: floor.width, depth: floor.depth };
@@ -224,7 +236,11 @@ export function createFromPlacing(placing: string, cell: Point): Element {
   }
   switch (placing) {
     case 'floor':
-      return { kind: 'floor', ...base, width: 4, depth: 3, sizeMode: 'auto', corners: 'sharp', color: PRESETS.gray };
+      return {
+        kind: 'floor', ...base, width: 4, depth: 3,
+        floorType: 'raised', floorShadow: true,
+        sizeMode: 'auto', corners: 'sharp', color: PRESETS.gray,
+      };
     case 'tag:bubble':
       return { kind: 'tag', ...base, text: 'Label', color: '#3479FF', style: 'bubble' };
     case 'tag:tips':
