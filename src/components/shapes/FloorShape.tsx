@@ -62,8 +62,8 @@ export function FloorShape({
       onDoubleClick={() => onDoubleClick?.(el.id)}
       style={onPointerDown ? { cursor: 'move' } : undefined}
     >
-      {hasShadow && (
-        <g transform={`translate(0 ${thickness + 8})`} opacity={type === 'raised' ? 0.22 : 0.16}
+      {hasShadow && type === 'flat' && (
+        <g transform={`translate(0 ${thickness + 8})`} opacity={0.16}
           style={{ filter: 'blur(7px)' }} pointerEvents="none">
           <g transform={m}>
             <rect x={6} y={6} width={Math.max(0, w - 12)} height={Math.max(0, d - 12)} rx={rx} fill="#1d2433" />

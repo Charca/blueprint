@@ -24,10 +24,16 @@ describe('FloorShape labels', () => {
     expect(markup).toContain('translate(0 0)');
   });
 
-  it('renders raised floors with height and allows the shadow to be disabled', () => {
-    const raised = { ...labeledFloor('left'), floorType: 'raised' as const, floorShadow: false };
+  it('renders raised floors with height without adding a floor shadow', () => {
+    const raised = { ...labeledFloor('left'), floorType: 'raised' as const, floorShadow: true };
     const markup = renderToStaticMarkup(<FloorShape el={raised} view={ISO} />);
     expect(markup).toContain('translate(0 12)');
     expect(markup).not.toContain('blur(7px)');
+  });
+
+  it('renders flat floor shadows when enabled', () => {
+    const flat = { ...labeledFloor('left'), floorType: 'flat' as const, floorShadow: true };
+    const markup = renderToStaticMarkup(<FloorShape el={flat} view={ISO} />);
+    expect(markup).toContain('blur(7px)');
   });
 });
