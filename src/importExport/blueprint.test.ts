@@ -35,10 +35,13 @@ describe('portable Blueprint JSON', () => {
     ['malformed JSON', '{oops'],
     ['unknown format', JSON.stringify({ format: 'other', formatVersion: 1, document: {} })],
     ['unsupported version', JSON.stringify({ format: 'blueprint', formatVersion: 2, document: {} })],
+    ['unsupported document schema', JSON.stringify({ format: 'blueprint', formatVersion: 1, document: { ...doc, id: undefined, schemaVersion: 2 } })],
     ['invalid zoom', JSON.stringify({ format: 'blueprint', formatVersion: 1, document: { ...doc, id: undefined, camera: { x: 0, y: 0, zoom: 5 } } })],
+    ['unsafe element ID', JSON.stringify({ format: 'blueprint', formatVersion: 1, document: { ...doc, id: undefined, elements: [...doc.elements, { kind: 'text', id: 'x"/><script', gridX: 0, gridY: 0, content: 'Unsafe', variant: 'plain' }] } })],
     ['duplicate ID', JSON.stringify({ format: 'blueprint', formatVersion: 1, document: { ...doc, id: undefined, elements: [...doc.elements, { ...doc.elements[0], id: 'floor' }] } })],
     ['dangling connector', JSON.stringify({ format: 'blueprint', formatVersion: 1, document: { ...doc, id: undefined, elements: [...doc.elements.slice(0, -1), { ...doc.elements[4], toId: 'missing' }] } })],
     ['invalid parent', JSON.stringify({ format: 'blueprint', formatVersion: 1, document: { ...doc, id: undefined, elements: [{ ...doc.elements[0] }, { ...doc.elements[1], parentId: 'tag' }, ...doc.elements.slice(2)] } })],
+    ['invalid tag attachment', JSON.stringify({ format: 'blueprint', formatVersion: 1, document: { ...doc, id: undefined, elements: doc.elements.map((element) => element.kind === 'tag' ? { ...element, attachedTo: 'missing' } : element) } })],
   ])('rejects %s', (_name, serialized) => {
     expect(() => parseBlueprint(serialized)).toThrow(BlueprintImportError);
   });

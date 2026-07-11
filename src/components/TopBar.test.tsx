@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { Doc } from '../model/types';
 import { useDocStore } from '../store/docStore';
 import { TopBar } from './TopBar';
@@ -18,6 +18,7 @@ const doc: Doc = {
 
 describe('TopBar JSON export', () => {
   beforeEach(() => {
+    cleanup();
     download.mockReset();
     useDocStore.setState({ doc });
   });
@@ -33,5 +34,16 @@ describe('TopBar JSON export', () => {
       formatVersion: 1,
       document: { name: doc.name, view: doc.view, camera: doc.camera },
     });
+  });
+
+  it('sanitizes the JSON download filename and falls back to Untitled', () => {
+    useDocStore.setState({ doc: { ...doc, name: '  release/../\u0000\u007fwest  ' } });
+    render(<TopBar />);
+    fireEvent.click(screen.getByTitle('Export JSON'));
+    expect(download).toHaveBeenLastCalledWith('release_.._west.blueprint.json', expect.any(Blob));
+
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: ' \t ' } });
+    fireEvent.click(screen.getByTitle('Export JSON'));
+    expect(download).toHaveBeenLastCalledWith('Untitled.blueprint.json', expect.any(Blob));
   });
 });

@@ -37,7 +37,10 @@ export function Home() {
             if (!file) return;
             try {
               const doc = parseBlueprint(await file.text());
-              saveDoc(doc);
+              if (!saveDoc(doc)) {
+                setImportError('Could not save the imported canvas.');
+                return;
+              }
               setImportError(null);
               openDoc(doc.id);
             } catch (error) {

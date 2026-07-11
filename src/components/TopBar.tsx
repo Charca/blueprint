@@ -5,6 +5,10 @@ import { serializeBlueprint } from '../importExport/blueprint';
 import { useAppStore } from '../store/appStore';
 import { useDocStore } from '../store/docStore';
 
+function jsonFilename(name: string): string {
+  return name.trim().replace(/[\u0000-\u001f\u007f-\u009f\\/:*?"<>|]+/g, '_').trim() || 'Untitled';
+}
+
 export function TopBar() {
   const doc = useDocStore((s) => s.doc);
   const setName = useDocStore((s) => s.setName);
@@ -30,7 +34,7 @@ export function TopBar() {
         className="bp-icon-btn"
         title="Export JSON"
         onClick={() => download(
-          `${doc.name.trim() || 'Untitled'}.blueprint.json`,
+          `${jsonFilename(doc.name)}.blueprint.json`,
           new Blob([serializeBlueprint(doc)], { type: 'application/json' }),
         )}
       >

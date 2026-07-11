@@ -50,4 +50,11 @@ describe('storage/local', () => {
     saveDoc({ ...doc, view: { rotation: 2, mode: 'top' } });
     expect(loadDoc(doc.id)?.view).toEqual({ rotation: 2, mode: 'top' });
   });
+
+  it('supplies the default view for legacy stored documents without one', () => {
+    const doc = createDoc('Legacy');
+    const { view: _view, ...legacyDoc } = doc;
+    localStorage.setItem(`blueprint:doc:${doc.id}`, JSON.stringify(legacyDoc));
+    expect(loadDoc(doc.id)).toEqual({ ...doc, view: { rotation: 0, mode: 'iso' } });
+  });
 });

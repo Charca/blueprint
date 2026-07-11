@@ -20,11 +20,12 @@ function writeIndex(metas: DocMeta[]): void {
 
 let warnedSaveFailure = false;
 
-export function saveDoc(doc: Doc): void {
+export function saveDoc(doc: Doc): boolean {
   try {
     localStorage.setItem(docKey(doc.id), JSON.stringify(doc));
     const rest = listDocs().filter((m) => m.id !== doc.id);
     writeIndex([{ id: doc.id, name: doc.name, updatedAt: Date.now() }, ...rest]);
+    return true;
   } catch (err) {
     console.error('Blueprint: failed to save document', err);
     if (!warnedSaveFailure) {
@@ -33,6 +34,7 @@ export function saveDoc(doc: Doc): void {
         window.alert('Blueprint could not save your changes (storage full or unavailable).');
       }
     }
+    return false;
   }
 }
 

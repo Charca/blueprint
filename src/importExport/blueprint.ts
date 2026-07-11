@@ -107,7 +107,8 @@ function parseLabel(value: unknown): Label | undefined {
 function parseElement(value: unknown): Element {
   if (!isRecord(value)) fail('Invalid element.');
   const id = string(value.id, 'element.id');
-  if (!id) fail('Invalid element.id.');
+  // IDs are embedded in SVG instance markup; uid() emits lowercase base-36 values.
+  if (!/^[a-z0-9]+$/.test(id)) fail('Invalid element.id.');
 
   switch (value.kind) {
     case 'asset': {
