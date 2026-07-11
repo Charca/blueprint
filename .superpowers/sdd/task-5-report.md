@@ -208,3 +208,82 @@ Implementation commit: `9382f2c Fix JSON import and export review findings`.
   partial-write case is intentionally out of scope.
 - Vite continues to report its pre-existing bundle-size warning; the build
   exits successfully.
+
+## SaveDoc Index Rollback Fix
+
+### Root Cause
+
+`saveDoc` wrote `blueprint:doc:<id>` before `blueprint:index`. When only the
+index write threw, its catch preserved the non-throwing `false` result but left
+the completed document-key write behind, making the document loadable but
+absent from the index.
+
+### TDD Evidence
+
+RED command:
+
+```sh
+npm test -- src/storage/local.test.ts
+```
+
+Result: exit 1. The new index-only-write failure regression returned `false`
+from `saveDoc` as expected, but failed because `loadDoc('index-write-failure')`
+returned the written document rather than `null`.
+
+GREEN command:
+
+```sh
+npm test -- src/storage/local.test.ts
+```
+
+Result: exit 0. The focused storage suite passed 8 tests after `saveDoc`
+snapshotted the prior document value and restored it (or removed a new key)
+when a later storage operation failed.
+
+### Final Verification
+
+Commands:
+
+```sh
+npm test
+npm run typecheck
+npm run build
+```
+
+Results:
+
+- `npm test`: exit 0, 17 test files and 112 tests passed.
+- `npm run typecheck`: exit 0, `tsc --noEmit` reported no errors.
+- `npm run build`: exit 0, Vite built 1,808 modules. It retained the existing
+  chunk-size warning for a 954.89 kB JavaScript bundle.
+
+### Changed Files
+
+- `src/storage/local.ts`
+- `src/storage/local.test.ts`
+- `docs/superpowers/plans/2026-07-10-save-doc-index-rollback.md`
+- `.superpowers/sdd/task-5-report.md`
+
+### Commit
+
+Implementation commit: `2c89e47 Fix save document index rollback`.
+
+### Self-Review
+
+- The regression makes only `blueprint:index` writes fail and verifies the
+  boolean failure result, `loadDoc` null result, absent document key, and absent
+  index metadata.
+- Successful save behavior remains unchanged, and all existing callers retain
+  the boolean, non-throwing API.
+- A failed document-key write does not trigger compensation because rollback is
+  attempted only after the document write completed.
+- If the document already existed, its exact stored bytes are restored when the
+  later index write fails.
+- `git diff --check` passed before the implementation commit.
+
+### Concerns
+
+- If localStorage also rejects the compensating `removeItem` or `setItem`, the
+  API still returns `false` without throwing, but physical rollback cannot be
+  guaranteed by an unavailable storage backend.
+- The production build has the pre-existing chunk-size warning noted above.
