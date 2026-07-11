@@ -14,13 +14,20 @@ const labeledFloor = (orientation: 'left' | 'right'): FloorEl => ({
 describe('FloorShape labels', () => {
   it('centers left tag labels along the outside lower edge', () => {
     const markup = renderToStaticMarkup(<FloorShape el={labeledFloor('left')} view={ISO} />);
-    expect(markup).toContain('matrix(0.8660254037844386 0.5 -0.8660254037844386 0.5 -79.67433714816836 127)');
+    expect(markup).toContain('matrix(0.8660254037844386 0.5 -0.8660254037844386 0.5 -79.67433714816836 121)');
     expect(markup).toContain('translate(0 0)');
   });
 
   it('centers right tag labels along the outside right edge', () => {
     const markup = renderToStaticMarkup(<FloorShape el={labeledFloor('right')} view={ISO} />);
-    expect(markup).toContain('matrix(0.8660254037844386 -0.5 0.8660254037844386 0.5 144.62624243200125 139.5)');
+    expect(markup).toContain('matrix(0.8660254037844386 -0.5 0.8660254037844386 0.5 144.62624243200125 133.5)');
     expect(markup).toContain('translate(0 0)');
+  });
+
+  it('renders raised floors with height and allows the shadow to be disabled', () => {
+    const raised = { ...labeledFloor('left'), floorType: 'raised' as const, floorShadow: false };
+    const markup = renderToStaticMarkup(<FloorShape el={raised} view={ISO} />);
+    expect(markup).toContain('translate(0 12)');
+    expect(markup).not.toContain('blur(7px)');
   });
 });

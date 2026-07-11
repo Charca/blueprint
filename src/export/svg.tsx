@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { project } from '../lib/projection';
 import type { ViewState } from '../lib/projection';
-import { anchorOfElement, floorBounds } from '../model/ops';
+import { anchorOfElement, floorBounds, floorThickness } from '../model/ops';
 import type { Doc, Element } from '../model/types';
 import { Scene } from '../components/Scene';
 import { wrapText } from '../lib/wrap';
@@ -41,7 +41,7 @@ export function contentBounds(elements: Element[], view: ViewState): Bounds {
         const outwardLen = Math.hypot(outward.x, outward.y) || 1;
         const c = {
           x: sideCenter.x + (outward.x / outwardLen) * FLOOR_LABEL_GAP,
-          y: sideCenter.y + (view.mode === 'iso' ? 6 : 0) + (outward.y / outwardLen) * FLOOR_LABEL_GAP,
+          y: sideCenter.y + floorThickness(el, view.mode) + (outward.y / outwardLen) * FLOOR_LABEL_GAP,
         };
         const halfW = (el.label.text.length * 8 + 28) / 2 + 12;
         pts.push({ x: c.x - halfW, y: c.y - 20 }, { x: c.x + halfW, y: c.y + 20 });

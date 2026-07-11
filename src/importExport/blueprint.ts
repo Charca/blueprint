@@ -54,6 +54,10 @@ function optionalString(value: unknown, field: string): string | undefined {
   return value === undefined ? undefined : string(value, field);
 }
 
+function optionalBoolean(value: unknown, field: string): boolean | undefined {
+  return value === undefined ? undefined : typeof value === 'boolean' ? value : fail(`Invalid ${field}.`);
+}
+
 function parseFile(value: unknown): BlueprintFile {
   if (!isRecord(value)) fail('Invalid Blueprint file.');
   if (value.format !== 'blueprint') fail('Unsupported Blueprint file format.');
@@ -123,6 +127,8 @@ function parseElement(value: unknown): Element {
       };
     }
     case 'floor': {
+      const floorType = value.floorType === undefined ? undefined : oneOf(value.floorType, ['raised', 'flat'] as const, 'floor.floorType');
+      const floorShadow = optionalBoolean(value.floorShadow, 'floor.floorShadow');
       const sizeMode = value.sizeMode === undefined ? undefined : oneOf(value.sizeMode, ['auto', 'manual'] as const, 'floor.sizeMode');
       const label = parseLabel(value.label);
       return {
@@ -131,6 +137,8 @@ function parseElement(value: unknown): Element {
         width: number(value.width, 'floor.width'), depth: number(value.depth, 'floor.depth'),
         corners: oneOf(value.corners, ['sharp', 'rounded', 'pill'] as const, 'floor.corners'),
         color: string(value.color, 'floor.color'),
+        ...(floorType === undefined ? {} : { floorType }),
+        ...(floorShadow === undefined ? {} : { floorShadow }),
         ...(sizeMode === undefined ? {} : { sizeMode }),
         ...(label === undefined ? {} : { label }),
       };
