@@ -1,6 +1,6 @@
 import { floorBounds } from '../model/ops';
-import { depth } from './projection';
-import type { Element } from '../model/types';
+import { CELL, depth } from './projection';
+import type { ConnectorEl, Element } from '../model/types';
 import { project } from './projection';
 import type { Point, ViewState } from './projection';
 import { wrapText } from './wrap';
@@ -9,6 +9,24 @@ const ASSET_LEFT = 60;
 const ASSET_TOP = 85;
 const ASSET_RIGHT = 60;
 const ASSET_BOTTOM = 35;
+const ELBOW_RADIUS = 18;
+const CONNECTOR_HEAD_PADDING = 18;
+
+export const DEFAULT_CONNECTOR_START_HEAD = 'none' as const;
+export const DEFAULT_CONNECTOR_END_HEAD = 'arrow' as const;
+export const DEFAULT_CONNECTOR_ROUTE = 'elbow' as const;
+
+export function connectorStartHead(el: Pick<ConnectorEl, 'startHead'>) {
+  return el.startHead ?? DEFAULT_CONNECTOR_START_HEAD;
+}
+
+export function connectorEndHead(el: Pick<ConnectorEl, 'endHead'>) {
+  return el.endHead ?? DEFAULT_CONNECTOR_END_HEAD;
+}
+
+export function connectorRoute(el: Pick<ConnectorEl, 'route'>) {
+  return el.route ?? DEFAULT_CONNECTOR_ROUTE;
+}
 
 function rectPoints(left: number, top: number, right: number, bottom: number): Point[] {
   return [
@@ -73,6 +91,119 @@ export function edgePoint(fromCenter: Point, toCenter: Point, hull: Point[] | nu
     if (!best || hit.t < best.t) best = hit;
   }
   return best?.point ?? fromCenter;
+}
+
+function samePoint(a: Point, b: Point): boolean {
+  return Math.abs(a.x - b.x) < 1e-6 && Math.abs(a.y - b.y) < 1e-6;
+}
+
+function compactPoints(points: Point[]): Point[] {
+  return points.filter((point, index) => index === 0 || !samePoint(point, points[index - 1]));
+}
+
+export function connectorRoutePoints(
+  fromCenter: Point,
+  toCenter: Point,
+  fromHull: Point[] | null,
+  toHull: Point[] | null,
+  route: ConnectorEl['route'] = DEFAULT_CONNECTOR_ROUTE,
+  elbowOffset?: number,
+): Point[] {
+  if ((route ?? DEFAULT_CONNECTOR_ROUTE) === 'sharp') {
+    return [edgePoint(fromCenter, toCenter, fromHull), edgePoint(toCenter, fromCenter, toHull)];
+  }
+
+  const midX = (fromCenter.x + toCenter.x) / 2 + (elbowOffset ?? 0);
+  const centerRoute = compactPoints([
+    fromCenter,
+    { x: midX, y: fromCenter.y },
+    { x: midX, y: toCenter.y },
+    toCenter,
+  ]);
+  const startToward = centerRoute[1] ?? toCenter;
+  const endFrom = centerRoute[centerRoute.length - 2] ?? fromCenter;
+  const start = edgePoint(fromCenter, startToward, fromHull);
+  const end = edgePoint(toCenter, endFrom, toHull);
+  return compactPoints([start, ...centerRoute.slice(1, -1), end]);
+}
+
+export function planePoint(gridPoint: Point): Point {
+  return { x: gridPoint.x * CELL, y: gridPoint.y * CELL };
+}
+
+export function planeElementHull(el: Element, elements: Element[]): Point[] | null {
+  if (el.kind === 'connector') return null;
+  if (el.kind === 'floor') {
+    const bounds = floorBounds(elements, el);
+    return [
+      planePoint({ x: bounds.gridX - 0.5, y: bounds.gridY - 0.5 }),
+      planePoint({ x: bounds.gridX + bounds.width - 0.5, y: bounds.gridY - 0.5 }),
+      planePoint({ x: bounds.gridX + bounds.width - 0.5, y: bounds.gridY + bounds.depth - 0.5 }),
+      planePoint({ x: bounds.gridX - 0.5, y: bounds.gridY + bounds.depth - 0.5 }),
+    ];
+  }
+  return rectPoints(
+    (el.gridX - 0.5) * CELL,
+    (el.gridY - 0.5) * CELL,
+    (el.gridX + 0.5) * CELL,
+    (el.gridY + 0.5) * CELL,
+  );
+}
+
+function paddedEndpoint(point: Point, toward: Point, padding: number): Point {
+  const len = Math.hypot(toward.x - point.x, toward.y - point.y);
+  if (len <= 1e-6) return point;
+  const distance = Math.min(padding, len / 2);
+  return {
+    x: point.x + ((toward.x - point.x) / len) * distance,
+    y: point.y + ((toward.y - point.y) / len) * distance,
+  };
+}
+
+export function padConnectorHeadEndpoints(
+  points: Point[],
+  startHasHead: boolean,
+  endHasHead: boolean,
+  padding = CONNECTOR_HEAD_PADDING,
+): Point[] {
+  if (points.length < 2 || (!startHasHead && !endHasHead)) return points;
+  const next = [...points];
+  if (startHasHead) next[0] = paddedEndpoint(points[0], points[1], padding);
+  if (endHasHead) next[next.length - 1] = paddedEndpoint(points[points.length - 1], points[points.length - 2], padding);
+  return compactPoints(next);
+}
+
+export function connectorPathD(points: Point[], rounded = false, radius = ELBOW_RADIUS): string {
+  if (points.length === 0) return '';
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+  if (!rounded || points.length < 3) {
+    return `M ${points.map((p) => `${p.x} ${p.y}`).join(' L ')}`;
+  }
+  const parts = [`M ${points[0].x} ${points[0].y}`];
+  for (let i = 1; i < points.length - 1; i++) {
+    const prev = points[i - 1];
+    const current = points[i];
+    const next = points[i + 1];
+    const inLen = Math.hypot(current.x - prev.x, current.y - prev.y);
+    const outLen = Math.hypot(next.x - current.x, next.y - current.y);
+    const r = Math.min(radius, inLen / 2, outLen / 2);
+    if (r <= 0) {
+      parts.push(`L ${current.x} ${current.y}`);
+      continue;
+    }
+    const before = {
+      x: current.x + ((prev.x - current.x) / inLen) * r,
+      y: current.y + ((prev.y - current.y) / inLen) * r,
+    };
+    const after = {
+      x: current.x + ((next.x - current.x) / outLen) * r,
+      y: current.y + ((next.y - current.y) / outLen) * r,
+    };
+    parts.push(`L ${before.x} ${before.y}`, `Q ${current.x} ${current.y} ${after.x} ${after.y}`);
+  }
+  const last = points[points.length - 1];
+  parts.push(`L ${last.x} ${last.y}`);
+  return parts.join(' ');
 }
 
 export function containsProjectedPoint(hull: Point[] | null, point: Point): boolean {

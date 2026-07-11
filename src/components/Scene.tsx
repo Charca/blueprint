@@ -17,12 +17,13 @@ export interface SceneProps {
   highlightedFloorId?: string | null;
   onElementPointerDown?: (e: PointerEvent, id: string) => void;
   onFloorResizePointerDown?: (e: PointerEvent, id: string, side: FloorResizeSide) => void;
+  onConnectorElbowPointerDown?: (e: PointerEvent, id: string) => void;
   onElementDoubleClick?: (id: string) => void;
   ghost?: ReactNode;
 }
 
 export function Scene({
-  elements, view, selection, highlightedFloorId, onElementPointerDown, onFloorResizePointerDown, onElementDoubleClick, ghost,
+  elements, view, selection, highlightedFloorId, onElementPointerDown, onFloorResizePointerDown, onConnectorElbowPointerDown, onElementDoubleClick, ghost,
 }: SceneProps) {
   const assets = elements
     .filter((e) => e.kind === 'asset')
@@ -41,7 +42,7 @@ export function Scene({
       ))}
       {elements.filter((e) => e.kind === 'connector').map((el) => (
         <ConnectorShape key={el.id} el={el} elements={elements}
-          selected={selection?.has(el.id)} {...shared} />
+          selected={selection?.has(el.id)} onElbowPointerDown={onConnectorElbowPointerDown} {...shared} />
       ))}
       {assets.map((el) => (
         <AssetShape key={el.id} el={el} selected={selection?.has(el.id)} {...shared} />
