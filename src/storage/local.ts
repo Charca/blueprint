@@ -20,12 +20,26 @@ function writeIndex(metas: DocMeta[]): void {
 
 let warnedSaveFailure = false;
 
-export function saveDoc(doc: Doc): void {
+export function saveDoc(doc: Doc): boolean {
+  const key = docKey(doc.id);
+  let previous: string | null = null;
+  let documentWritten = false;
   try {
-    localStorage.setItem(docKey(doc.id), JSON.stringify(doc));
+    previous = localStorage.getItem(key);
+    localStorage.setItem(key, JSON.stringify(doc));
+    documentWritten = true;
     const rest = listDocs().filter((m) => m.id !== doc.id);
     writeIndex([{ id: doc.id, name: doc.name, updatedAt: Date.now() }, ...rest]);
+    return true;
   } catch (err) {
+    if (documentWritten) {
+      try {
+        if (previous === null) localStorage.removeItem(key);
+        else localStorage.setItem(key, previous);
+      } catch {
+        // Preserve the non-throwing save contract even if compensation fails.
+      }
+    }
     console.error('Blueprint: failed to save document', err);
     if (!warnedSaveFailure) {
       warnedSaveFailure = true;
@@ -33,6 +47,7 @@ export function saveDoc(doc: Doc): void {
         window.alert('Blueprint could not save your changes (storage full or unavailable).');
       }
     }
+    return false;
   }
 }
 
@@ -54,7 +69,7 @@ export function loadDoc(id: string): Doc | null {
   if (!raw) return null;
   try {
     const doc = JSON.parse(raw) as Doc;
-    return { ...doc, view: { rotation: 0, mode: 'iso' } };
+    return { ...doc, view: doc.view ?? { rotation: 0, mode: 'iso' } };
   } catch {
     return null;
   }

@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Doc } from '../model/types';
 import { createDoc, deleteDoc, listDocs, loadDoc, renameDoc, saveDoc } from './local';
 
 describe('storage/local', () => {
@@ -45,9 +46,45 @@ describe('storage/local', () => {
     expect(loadDoc('bad')).toBeNull();
   });
 
-  it('normalizes the saved view back to default iso on load', () => {
+  it('preserves a saved non-default view on load', () => {
     const doc = createDoc('V');
     saveDoc({ ...doc, view: { rotation: 2, mode: 'top' } });
-    expect(loadDoc(doc.id)?.view).toEqual({ rotation: 0, mode: 'iso' });
+    expect(loadDoc(doc.id)?.view).toEqual({ rotation: 2, mode: 'top' });
+  });
+
+  it('supplies the default view for legacy stored documents without one', () => {
+    const doc = createDoc('Legacy');
+    const { view: _view, ...legacyDoc } = doc;
+    localStorage.setItem(`blueprint:doc:${doc.id}`, JSON.stringify(legacyDoc));
+    expect(loadDoc(doc.id)).toEqual({ ...doc, view: { rotation: 0, mode: 'iso' } });
+  });
+
+  it('rolls back a newly saved document when the index write fails', () => {
+    const doc: Doc = {
+      id: 'index-write-failure',
+      name: 'No orphan',
+      schemaVersion: 1,
+      view: { rotation: 0, mode: 'iso' },
+      camera: { x: 0, y: 0, zoom: 1 },
+      elements: [],
+    };
+    const setItem = localStorage.setItem.bind(localStorage);
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation((key, value) => {
+      if (key === 'blueprint:index') throw new Error('index unavailable');
+      setItem(key, value);
+    });
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+    try {
+      expect(saveDoc(doc)).toBe(false);
+      expect(loadDoc(doc.id)).toBeNull();
+      expect(localStorage.getItem(`blueprint:doc:${doc.id}`)).toBeNull();
+      expect(listDocs()).not.toContainEqual(expect.objectContaining({ id: doc.id }));
+    } finally {
+      setItemSpy.mockRestore();
+      consoleErrorSpy.mockRestore();
+      alertSpy.mockRestore();
+    }
   });
 });
