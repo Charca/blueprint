@@ -21,12 +21,25 @@ function writeIndex(metas: DocMeta[]): void {
 let warnedSaveFailure = false;
 
 export function saveDoc(doc: Doc): boolean {
+  const key = docKey(doc.id);
+  let previous: string | null = null;
+  let documentWritten = false;
   try {
-    localStorage.setItem(docKey(doc.id), JSON.stringify(doc));
+    previous = localStorage.getItem(key);
+    localStorage.setItem(key, JSON.stringify(doc));
+    documentWritten = true;
     const rest = listDocs().filter((m) => m.id !== doc.id);
     writeIndex([{ id: doc.id, name: doc.name, updatedAt: Date.now() }, ...rest]);
     return true;
   } catch (err) {
+    if (documentWritten) {
+      try {
+        if (previous === null) localStorage.removeItem(key);
+        else localStorage.setItem(key, previous);
+      } catch {
+        // Preserve the non-throwing save contract even if compensation fails.
+      }
+    }
     console.error('Blueprint: failed to save document', err);
     if (!warnedSaveFailure) {
       warnedSaveFailure = true;
