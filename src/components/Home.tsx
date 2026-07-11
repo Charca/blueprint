@@ -1,10 +1,13 @@
-import { useState } from 'react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
-import { createDoc, deleteDoc, listDocs, renameDoc } from '../storage/local';
+import { useRef, useState } from 'react';
+import { Pencil, Plus, Trash2, Upload } from 'lucide-react';
+import { BlueprintImportError, parseBlueprint } from '../importExport/blueprint';
+import { createDoc, deleteDoc, listDocs, renameDoc, saveDoc } from '../storage/local';
 import { useAppStore } from '../store/appStore';
 
 export function Home() {
   const [docs, setDocs] = useState(() => listDocs());
+  const [importError, setImportError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const openDoc = useAppStore((s) => s.openDoc);
 
   const refresh = () => setDocs(listDocs());
@@ -19,7 +22,31 @@ export function Home() {
         >
           <Plus size={16} /> New canvas
         </button>
+        <button className="bp-btn" onClick={() => inputRef.current?.click()}>
+          <Upload size={16} /> Import JSON
+        </button>
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".json,.blueprint.json,application/json"
+          hidden
+          onChange={async (event) => {
+            setImportError(null);
+            const file = event.target.files?.[0];
+            event.currentTarget.value = '';
+            if (!file) return;
+            try {
+              const doc = parseBlueprint(await file.text());
+              saveDoc(doc);
+              setImportError(null);
+              openDoc(doc.id);
+            } catch (error) {
+              setImportError(error instanceof BlueprintImportError ? error.message : 'Could not read this file.');
+            }
+          }}
+        />
       </header>
+      {importError && <p className="bp-import-error" role="alert">{importError}</p>}
       {docs.length === 0 ? (
         <p className="bp-empty">No canvases yet. Create one to get started.</p>
       ) : (
