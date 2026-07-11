@@ -54,7 +54,7 @@ export function loadDoc(id: string): Doc | null {
   if (!raw) return null;
   try {
     const doc = JSON.parse(raw) as Doc;
-    return { ...doc, view: { rotation: 0, mode: 'iso' } };
+    return { ...doc, view: doc.view ?? { rotation: 0, mode: 'iso' } };
   } catch {
     return null;
   }
