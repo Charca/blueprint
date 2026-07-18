@@ -1,24 +1,28 @@
 import { uid } from '../lib/ids';
 import type { Doc } from '../model/types';
 
-export interface DocMeta { id: string; name: string; updatedAt: number; openedAt: number }
+export interface DocMeta { id: string; name: string; updatedAt: number; openedAt: number; createdAt: number }
 
 const INDEX_KEY = 'blueprint:index';
 const docKey = (id: string) => `blueprint:doc:${id}`;
 
 function normalizeMeta(meta: Partial<DocMeta> & { id: string; name: string }): DocMeta {
   const updatedAt = typeof meta.updatedAt === 'number' ? meta.updatedAt : 0;
+  const openedAt = typeof meta.openedAt === 'number' ? meta.openedAt : updatedAt;
   return {
     id: meta.id,
     name: meta.name,
     updatedAt,
-    openedAt: typeof meta.openedAt === 'number' ? meta.openedAt : updatedAt,
+    openedAt,
+    createdAt: typeof meta.createdAt === 'number' ? meta.createdAt : Math.min(updatedAt || openedAt, openedAt || updatedAt),
   };
 }
 
 export function listDocs(): DocMeta[] {
   try {
-    return (JSON.parse(localStorage.getItem(INDEX_KEY) ?? '[]') as Array<Partial<DocMeta> & { id: string; name: string }>).map(normalizeMeta);
+    return (JSON.parse(localStorage.getItem(INDEX_KEY) ?? '[]') as Array<Partial<DocMeta> & { id: string; name: string }>)
+      .map(normalizeMeta)
+      .sort((a, b) => b.createdAt - a.createdAt || a.id.localeCompare(b.id));
   } catch {
     return [];
   }
@@ -41,7 +45,7 @@ export function saveDoc(doc: Doc): boolean {
     const now = Date.now();
     const existing = listDocs().find((m) => m.id === doc.id);
     const rest = listDocs().filter((m) => m.id !== doc.id);
-    writeIndex([{ id: doc.id, name: doc.name, updatedAt: now, openedAt: existing?.openedAt ?? now }, ...rest]);
+    writeIndex([{ id: doc.id, name: doc.name, updatedAt: now, openedAt: existing?.openedAt ?? now, createdAt: existing?.createdAt ?? now }, ...rest]);
     return true;
   } catch (err) {
     if (documentWritten) {

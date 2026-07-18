@@ -17,13 +17,21 @@ describe('storage/local', () => {
     });
   });
 
-  it('saveDoc updates the index entry (name, most-recent-first order)', () => {
-    const a = createDoc('A');
-    const b = createDoc('B');
-    saveDoc({ ...a, name: 'A2' });
-    const metas = listDocs();
-    expect(metas[0]).toMatchObject({ id: a.id, name: 'A2' });
-    expect(metas[1]).toMatchObject({ id: b.id });
+  it('saveDoc updates the index entry without changing creation-date order', () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(1000);
+      const a = createDoc('A');
+      vi.setSystemTime(2000);
+      const b = createDoc('B');
+      vi.setSystemTime(3000);
+      saveDoc({ ...a, name: 'A2' });
+      const metas = listDocs();
+      expect(metas[0]).toMatchObject({ id: b.id });
+      expect(metas[1]).toMatchObject({ id: a.id, name: 'A2' });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('tracks and returns the latest opened canvas without being affected by saves', () => {
@@ -37,10 +45,12 @@ describe('storage/local', () => {
 
       vi.setSystemTime(3000);
       markDocOpened(first.id);
+      expect(listDocs().map((meta) => meta.id)).toEqual([second.id, first.id]);
       vi.setSystemTime(4000);
       saveDoc({ ...second, name: 'Second saved later' });
 
       expect(latestOpenedDocId()).toBe(first.id);
+      expect(listDocs().map((meta) => meta.id)).toEqual([second.id, first.id]);
     } finally {
       vi.useRealTimers();
     }
