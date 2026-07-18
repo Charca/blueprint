@@ -60,6 +60,8 @@ describe('TopBar JSON export', () => {
     fireEvent.click(screen.getByTitle('Canvas menu'));
     expect(screen.getByText('New Canvas')).toBeTruthy();
     expect(screen.getByText('Import JSON')).toBeTruthy();
+    expect(screen.getByTitle('Rename Target')).toBeTruthy();
+    expect(screen.getByTitle('Delete Target')).toBeTruthy();
     fireEvent.click(screen.getByText('Target'));
 
     expect(useAppStore.getState().docId).toBe(target.id);

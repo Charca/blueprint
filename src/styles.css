@@ -55,16 +55,12 @@ button { font: inherit; cursor: pointer; }
 .bp-menu-separator { height: 1px; background: #e5e5e1; margin: 7px 2px; }
 .bp-menu-error { margin: 6px 8px 2px; color: #a22; font-size: 12px; }
 .bp-menu-docs { display: flex; flex-direction: column; gap: 2px; }
-.bp-menu-doc { position: relative; min-height: 36px; }
+.bp-menu-doc { min-height: 36px; padding: 6px 8px; }
+.bp-menu-doc-open { min-width: 0; flex: 1; display: flex; align-items: center; border: 0; padding: 3px 2px; background: transparent; color: inherit; font: inherit; font-weight: inherit; text-align: left; }
 .bp-menu-doc-name { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bp-menu-doc-actions { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; opacity: 0; color: #5d5e64; }
-.bp-menu-doc:hover .bp-menu-doc-actions, .bp-menu-doc-actions:hover { opacity: 1; }
-.bp-kebab { display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; width: 24px; height: 24px; }
-.bp-kebab:hover { background: #e4e4e0; }
-.bp-doc-action-menu { display: none; position: absolute; top: 0; right: -8px; transform: translateX(100%); min-width: 120px; padding: 5px; background: #fff; border: 1px solid #ddddda; border-radius: 12px; box-shadow: 0 12px 28px rgba(30, 30, 30, 0.16); }
-.bp-menu-doc-actions:hover .bp-doc-action-menu { display: flex; flex-direction: column; gap: 2px; }
-.bp-doc-action { display: flex; align-items: center; gap: 7px; padding: 8px 9px; border-radius: 9px; color: #28292e; white-space: nowrap; }
-.bp-doc-action:hover { background: #f2f2f0; }
+.bp-menu-doc-actions { display: inline-flex; align-items: center; justify-content: center; gap: 3px; color: #5d5e64; }
+.bp-doc-action { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border: 0; border-radius: 8px; padding: 0; background: transparent; color: #5d5e64; }
+.bp-doc-action:hover { background: #e4e4e0; color: #28292e; }
 .bp-doc-action.bp-danger { color: #a22; }
 
 .bp-tool-active { background: #ededeb; color: #18191d; box-shadow: inset 0 0 0 1px #d8d8d4; }

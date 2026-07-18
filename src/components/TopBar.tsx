@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { FileCode2, FileDown, ImageDown, Menu, MoreVertical, Pencil, Plus, Redo2, Trash2, Undo2, Upload } from 'lucide-react';
+import { FileCode2, FileDown, ImageDown, Menu, Pencil, Plus, Redo2, Trash2, Undo2, Upload } from 'lucide-react';
 import { buildSvg } from '../export/svg';
 import { download, svgToPngBlob } from '../export/png';
 import { BlueprintImportError, parseBlueprint, serializeBlueprint } from '../importExport/blueprint';
@@ -65,34 +65,37 @@ export function TopBar() {
             <div className="bp-menu-separator" />
             <div className="bp-menu-docs">
               {shownDocs.map((meta) => (
-                <button
+                <div
                   key={meta.id}
                   className={`bp-menu-doc ${meta.id === doc.id ? 'bp-active' : ''}`}
-                  role="menuitem"
-                  onClick={() => openCanvas(meta.id)}
                 >
-                  <span className="bp-menu-doc-name">{meta.name}</span>
-                  <span className="bp-menu-doc-actions" onClick={(event) => event.stopPropagation()}>
-                    <span className="bp-kebab"><MoreVertical size={15} /></span>
-                    <span className="bp-doc-action-menu">
-                      <span
-                        className="bp-doc-action"
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => {
-                          const name = window.prompt('Canvas name', meta.name);
-                          if (name) { renameDoc(meta.id, name); refresh(); }
-                        }}
-                      ><Pencil size={13} /> Rename</span>
-                      <span
-                        className="bp-doc-action bp-danger"
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => deleteCanvas(meta.id, meta.name)}
-                      ><Trash2 size={13} /> Delete</span>
-                    </span>
-                  </span>
-                </button>
+                  <button
+                    className="bp-menu-doc-open"
+                    role="menuitem"
+                    onClick={() => openCanvas(meta.id)}
+                  >
+                    <span className="bp-menu-doc-name">{meta.name}</span>
+                  </button>
+                  <div className="bp-menu-doc-actions">
+                    <button
+                      className="bp-doc-action"
+                      type="button"
+                      title={`Rename ${meta.name}`}
+                      aria-label={`Rename ${meta.name}`}
+                      onClick={() => {
+                        const name = window.prompt('Canvas name', meta.name);
+                        if (name) { renameDoc(meta.id, name); refresh(); }
+                      }}
+                    ><Pencil size={13} /></button>
+                    <button
+                      className="bp-doc-action bp-danger"
+                      type="button"
+                      title={`Delete ${meta.name}`}
+                      aria-label={`Delete ${meta.name}`}
+                      onClick={() => deleteCanvas(meta.id, meta.name)}
+                    ><Trash2 size={13} /></button>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
