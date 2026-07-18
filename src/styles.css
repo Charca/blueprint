@@ -48,6 +48,24 @@ button { font: inherit; cursor: pointer; }
 .bp-name:hover, .bp-name:focus { border-color: #dededb; background: #fff; outline: none; }
 .bp-topbar-spacer { display: none; }
 .bp-divider { width: 1px; height: 26px; background: #e2e2de; margin: 0 4px; }
+.bp-menu-wrap { position: relative; }
+.bp-canvas-menu { position: absolute; top: calc(100% + 10px); left: 0; width: 260px; max-height: min(460px, calc(100vh - 86px)); overflow-y: auto; padding: 8px; background: rgba(255,255,255,0.95); border: 1px solid rgba(214,214,210,0.95); border-radius: 16px; box-shadow: 0 18px 48px rgba(30, 30, 30, 0.18); backdrop-filter: blur(18px); }
+.bp-menu-item, .bp-menu-doc { width: 100%; display: flex; align-items: center; gap: 9px; border: 0; background: transparent; color: #24252a; border-radius: 11px; padding: 9px 10px; text-align: left; font-weight: 650; }
+.bp-menu-item:hover, .bp-menu-doc:hover, .bp-menu-doc.bp-active { background: #f0f0ee; }
+.bp-menu-separator { height: 1px; background: #e5e5e1; margin: 7px 2px; }
+.bp-menu-error { margin: 6px 8px 2px; color: #a22; font-size: 12px; }
+.bp-menu-docs { display: flex; flex-direction: column; gap: 2px; }
+.bp-menu-doc { position: relative; min-height: 36px; }
+.bp-menu-doc-name { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bp-menu-doc-actions { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; opacity: 0; color: #5d5e64; }
+.bp-menu-doc:hover .bp-menu-doc-actions, .bp-menu-doc-actions:hover { opacity: 1; }
+.bp-kebab { display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; width: 24px; height: 24px; }
+.bp-kebab:hover { background: #e4e4e0; }
+.bp-doc-action-menu { display: none; position: absolute; top: 0; right: -8px; transform: translateX(100%); min-width: 120px; padding: 5px; background: #fff; border: 1px solid #ddddda; border-radius: 12px; box-shadow: 0 12px 28px rgba(30, 30, 30, 0.16); }
+.bp-menu-doc-actions:hover .bp-doc-action-menu { display: flex; flex-direction: column; gap: 2px; }
+.bp-doc-action { display: flex; align-items: center; gap: 7px; padding: 8px 9px; border-radius: 9px; color: #28292e; white-space: nowrap; }
+.bp-doc-action:hover { background: #f2f2f0; }
+.bp-doc-action.bp-danger { color: #a22; }
 
 .bp-tool-active { background: #ededeb; color: #18191d; box-shadow: inset 0 0 0 1px #d8d8d4; }
 

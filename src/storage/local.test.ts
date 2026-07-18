@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Doc } from '../model/types';
-import { createDoc, deleteDoc, listDocs, loadDoc, renameDoc, saveDoc } from './local';
+import { createDoc, deleteDoc, latestOpenedDocId, listDocs, loadDoc, markDocOpened, renameDoc, saveDoc } from './local';
 
 describe('storage/local', () => {
   beforeEach(() => localStorage.clear());
@@ -24,6 +24,26 @@ describe('storage/local', () => {
     const metas = listDocs();
     expect(metas[0]).toMatchObject({ id: a.id, name: 'A2' });
     expect(metas[1]).toMatchObject({ id: b.id });
+  });
+
+  it('tracks and returns the latest opened canvas without being affected by saves', () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(1000);
+      const first = createDoc('First');
+      vi.setSystemTime(2000);
+      const second = createDoc('Second');
+      expect(latestOpenedDocId()).toBe(second.id);
+
+      vi.setSystemTime(3000);
+      markDocOpened(first.id);
+      vi.setSystemTime(4000);
+      saveDoc({ ...second, name: 'Second saved later' });
+
+      expect(latestOpenedDocId()).toBe(first.id);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('deleteDoc removes doc and index entry', () => {
