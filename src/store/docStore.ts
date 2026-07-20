@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { loadDoc, saveDoc } from '../storage/local';
+import { loadDoc, markDocOpened, saveDoc } from '../storage/local';
 import type { Camera, Doc, Element } from '../model/types';
 import type { ViewState } from '../lib/projection';
 
@@ -15,7 +15,7 @@ interface DocState {
   future: Element[][];
   snapshot: Element[] | null;
   openDoc: (id: string) => void;
-  closeDoc: () => void;
+  closeDoc: (save?: boolean) => void;
   setName: (name: string) => void;
   setView: (view: ViewState) => void;
   setCamera: (camera: Camera) => void;
@@ -52,6 +52,11 @@ function flushPendingSave(): void {
   }
 }
 
+function cancelPendingSave(): void {
+  clearTimeout(saveTimer);
+  pendingDoc = null;
+}
+
 if (typeof window !== 'undefined') {
   window.addEventListener('pagehide', flushPendingSave);
 }
@@ -68,16 +73,19 @@ export const useDocStore = create<DocState>((set, get) => ({
 
   openDoc: (id) => {
     flushPendingSave();
+    const doc = loadDoc(id);
+    if (doc) markDocOpened(id);
     return set({
-      doc: loadDoc(id), selection: [], placing: null, tool: 'select',
+      doc, selection: [], placing: null, tool: 'select',
       connectFrom: null, past: [], future: [], snapshot: null,
     });
   },
 
-  closeDoc: () => {
-    flushPendingSave();
+  closeDoc: (save = true) => {
+    if (save) flushPendingSave();
+    else cancelPendingSave();
     const { doc } = get();
-    if (doc) saveDoc(doc);
+    if (save && doc) saveDoc(doc);
     set({ doc: null, selection: [], past: [], future: [], snapshot: null });
   },
 

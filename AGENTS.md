@@ -9,7 +9,7 @@
 
 ## Architecture
 
-- `src/main.tsx` mounts `App`; `App` switches between `Home` and the diagram `Editor` based on `src/store/appStore.ts`.
+- `src/main.tsx` mounts `App`; `App` opens the latest canvas (or creates one) and renders the diagram `Editor` based on `src/store/appStore.ts`.
 - Keep diagram data and its invariant-preserving operations in `src/model/types.ts` and `src/model/ops.ts`; `CanvasView` owns pointer/keyboard interactions and applies those operations through `useDocStore`.
 - Documents are local-only JSON in `localStorage` (`blueprint:index` and `blueprint:doc:<id>`). Preserve `schemaVersion: 1` compatibility and optional fields when evolving persisted model types.
 - `src/store/docStore.ts` debounces persistence and uses `apply` for undoable edits. Use `beginTransient` / `applyTransient` / `commitTransient` for drag-like changes so they become one history entry.

@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createDoc, latestOpenedDocId } from '../storage/local';
 import { useAppStore } from '../store/appStore';
 import { useDocStore } from '../store/docStore';
 import { CanvasView } from './CanvasView';
@@ -9,18 +10,18 @@ import { TopBar } from './TopBar';
 
 export function Editor({ docId }: { docId: string }) {
   const doc = useDocStore((s) => s.doc);
-  const openDoc = useDocStore((s) => s.openDoc);
+  const openStoreDoc = useDocStore((s) => s.openDoc);
   const closeDoc = useDocStore((s) => s.closeDoc);
-  const goHome = useAppStore((s) => s.goHome);
+  const openAppDoc = useAppStore((s) => s.openDoc);
 
   useEffect(() => {
-    openDoc(docId);
+    openStoreDoc(docId);
     if (!useDocStore.getState().doc) {
-      goHome();
+      openAppDoc(latestOpenedDocId() ?? createDoc().id);
       return;
     }
     return () => closeDoc();
-  }, [docId, openDoc, closeDoc, goHome]);
+  }, [docId, openStoreDoc, closeDoc, openAppDoc]);
 
   if (!doc) return <div className="bp-loading">Loading…</div>;
 

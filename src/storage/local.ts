@@ -1,14 +1,28 @@
 import { uid } from '../lib/ids';
 import type { Doc } from '../model/types';
 
-export interface DocMeta { id: string; name: string; updatedAt: number }
+export interface DocMeta { id: string; name: string; updatedAt: number; openedAt: number; createdAt: number }
 
 const INDEX_KEY = 'blueprint:index';
 const docKey = (id: string) => `blueprint:doc:${id}`;
 
+function normalizeMeta(meta: Partial<DocMeta> & { id: string; name: string }): DocMeta {
+  const updatedAt = typeof meta.updatedAt === 'number' ? meta.updatedAt : 0;
+  const openedAt = typeof meta.openedAt === 'number' ? meta.openedAt : updatedAt;
+  return {
+    id: meta.id,
+    name: meta.name,
+    updatedAt,
+    openedAt,
+    createdAt: typeof meta.createdAt === 'number' ? meta.createdAt : Math.min(updatedAt || openedAt, openedAt || updatedAt),
+  };
+}
+
 export function listDocs(): DocMeta[] {
   try {
-    return JSON.parse(localStorage.getItem(INDEX_KEY) ?? '[]') as DocMeta[];
+    return (JSON.parse(localStorage.getItem(INDEX_KEY) ?? '[]') as Array<Partial<DocMeta> & { id: string; name: string }>)
+      .map(normalizeMeta)
+      .sort((a, b) => b.createdAt - a.createdAt || a.id.localeCompare(b.id));
   } catch {
     return [];
   }
@@ -28,8 +42,10 @@ export function saveDoc(doc: Doc): boolean {
     previous = localStorage.getItem(key);
     localStorage.setItem(key, JSON.stringify(doc));
     documentWritten = true;
+    const now = Date.now();
+    const existing = listDocs().find((m) => m.id === doc.id);
     const rest = listDocs().filter((m) => m.id !== doc.id);
-    writeIndex([{ id: doc.id, name: doc.name, updatedAt: Date.now() }, ...rest]);
+    writeIndex([{ id: doc.id, name: doc.name, updatedAt: now, openedAt: existing?.openedAt ?? now, createdAt: existing?.createdAt ?? now }, ...rest]);
     return true;
   } catch (err) {
     if (documentWritten) {
@@ -61,6 +77,7 @@ export function createDoc(name = 'Untitled'): Doc {
     elements: [],
   };
   saveDoc(doc);
+  markDocOpened(doc.id);
   return doc;
 }
 
@@ -73,6 +90,19 @@ export function loadDoc(id: string): Doc | null {
   } catch {
     return null;
   }
+}
+
+export function markDocOpened(id: string): void {
+  const metas = listDocs();
+  const meta = metas.find((m) => m.id === id);
+  if (!meta) return;
+  writeIndex([{ ...meta, openedAt: Date.now() }, ...metas.filter((m) => m.id !== id)]);
+}
+
+export function latestOpenedDocId(): string | null {
+  return listDocs()
+    .filter((meta) => loadDoc(meta.id))
+    .sort((a, b) => b.openedAt - a.openedAt || b.updatedAt - a.updatedAt)[0]?.id ?? null;
 }
 
 export function deleteDoc(id: string): void {
