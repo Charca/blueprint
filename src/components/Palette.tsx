@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { MessageSquare, Square, StickyNote, Type } from 'lucide-react';
 import { ASSET_LIST } from '../generated/assets';
 import { instanceMarkup } from '../lib/assetInstance';
@@ -13,12 +13,37 @@ const EXTRAS = [
   { key: 'text:callout', name: 'Callout', icon: StickyNote },
 ];
 
+const DRAG_DATA_TYPE = 'application/x-blueprint-placing';
+
+function beginPaletteDrag(e: React.DragEvent, key: string) {
+  e.dataTransfer.setData(DRAG_DATA_TYPE, key);
+  e.dataTransfer.setData('text/plain', key);
+  const dragImage = document.createElement('canvas');
+  dragImage.width = 1;
+  dragImage.height = 1;
+  e.dataTransfer.setDragImage(dragImage, 0, 0);
+  useDocStore.getState().setDragPlacing(key);
+}
+
 export function Palette() {
   const placing = useDocStore((s) => s.placing);
   const setPlacing = useDocStore((s) => s.setPlacing);
   const [q, setQ] = useState('');
+  const draggedRef = useRef(false);
 
   const toggle = (key: string) => setPlacing(placing === key ? null : key);
+  const onDragStart = (e: React.DragEvent, key: string) => {
+    draggedRef.current = true;
+    beginPaletteDrag(e, key);
+  };
+  const onDragEnd = () => {
+    useDocStore.getState().setDragPlacing(null);
+    window.setTimeout(() => { draggedRef.current = false; }, 0);
+  };
+  const onPaletteClick = (key: string) => {
+    if (draggedRef.current) return;
+    toggle(key);
+  };
   const assets = ASSET_LIST.filter((a) => a.name.toLowerCase().includes(q.toLowerCase()));
 
   return (
@@ -36,7 +61,10 @@ export function Palette() {
             key={def.id}
             title={def.name}
             className={`bp-palette-item${placing === `asset:${def.id}` ? ' bp-active' : ''}`}
-            onClick={() => toggle(`asset:${def.id}`)}
+            draggable
+            onDragStart={(e) => onDragStart(e, `asset:${def.id}`)}
+            onDragEnd={onDragEnd}
+            onClick={() => onPaletteClick(`asset:${def.id}`)}
           >
             <svg viewBox={def.viewBox} width={48} height={48}>
               <g dangerouslySetInnerHTML={{
@@ -52,7 +80,10 @@ export function Palette() {
           <button
             key={key}
             className={`bp-palette-row${placing === key ? ' bp-active' : ''}`}
-            onClick={() => toggle(key)}
+            draggable
+            onDragStart={(e) => onDragStart(e, key)}
+            onDragEnd={onDragEnd}
+            onClick={() => onPaletteClick(key)}
           >
             <Icon size={15} /> {name}
           </button>

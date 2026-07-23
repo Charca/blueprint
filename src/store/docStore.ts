@@ -9,6 +9,7 @@ interface DocState {
   doc: Doc | null;
   selection: string[];
   placing: string | null;
+  dragPlacing: string | null;
   tool: Tool;
   connectFrom: string | null;
   past: Element[][];
@@ -27,6 +28,7 @@ interface DocState {
   redo: () => void;
   select: (ids: string[]) => void;
   setPlacing: (placing: string | null) => void;
+  setDragPlacing: (placing: string | null) => void;
   setTool: (tool: Tool) => void;
   setConnectFrom: (id: string | null) => void;
 }
@@ -65,6 +67,7 @@ export const useDocStore = create<DocState>((set, get) => ({
   doc: null,
   selection: [],
   placing: null,
+  dragPlacing: null,
   tool: 'select',
   connectFrom: null,
   past: [],
@@ -76,7 +79,7 @@ export const useDocStore = create<DocState>((set, get) => ({
     const doc = loadDoc(id);
     if (doc) markDocOpened(id);
     return set({
-      doc, selection: [], placing: null, tool: 'select',
+      doc, selection: [], placing: null, dragPlacing: null, tool: 'select',
       connectFrom: null, past: [], future: [], snapshot: null,
     });
   },
@@ -86,7 +89,7 @@ export const useDocStore = create<DocState>((set, get) => ({
     else cancelPendingSave();
     const { doc } = get();
     if (save && doc) saveDoc(doc);
-    set({ doc: null, selection: [], past: [], future: [], snapshot: null });
+    set({ doc: null, selection: [], placing: null, dragPlacing: null, past: [], future: [], snapshot: null });
   },
 
   setName: (name) => {
@@ -161,6 +164,7 @@ export const useDocStore = create<DocState>((set, get) => ({
 
   select: (selection) => set({ selection }),
   setPlacing: (placing) => set({ placing, tool: 'select', connectFrom: null }),
+  setDragPlacing: (dragPlacing) => set({ dragPlacing }),
   setTool: (tool) => set({ tool, placing: null, connectFrom: null }),
   setConnectFrom: (connectFrom) => set({ connectFrom }),
 }));

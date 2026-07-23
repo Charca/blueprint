@@ -24,6 +24,11 @@ type Drag = PanDrag | MoveDrag | ConnectDrag | ResizeDrag | MarqueeDrag;
 interface Clipboard { elements: ModelElement[]; ids: string[] }
 
 const MIN_FLOOR_SIZE = 1;
+const PALETTE_DRAG_DATA_TYPE = 'application/x-blueprint-placing';
+
+function paletteDragPlacing(e: React.DragEvent): string | null {
+  return e.dataTransfer.getData(PALETTE_DRAG_DATA_TYPE) || e.dataTransfer.getData('text/plain') || null;
+}
 
 function isFloorChild(el: ModelElement) {
   return el.kind === 'asset' || el.kind === 'tag' || el.kind === 'text';
@@ -102,6 +107,7 @@ export function CanvasView() {
   const doc = useDocStore((s) => s.doc);
   const selection = useDocStore((s) => s.selection);
   const placing = useDocStore((s) => s.placing);
+  const dragPlacing = useDocStore((s) => s.dragPlacing);
   const tool = useDocStore((s) => s.tool);
   const svgRef = useRef<SVGSVGElement>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
@@ -114,6 +120,7 @@ export function CanvasView() {
 
   const cam = doc?.camera ?? { x: 0, y: 0, zoom: 1 };
   const effectiveTool = spacePan ? 'pan' : tool;
+  const previewPlacing = dragPlacing ?? placing;
 
   const toWorld = (e: { clientX: number; clientY: number }): Point => {
     const r = svgRef.current!.getBoundingClientRect();
@@ -430,6 +437,31 @@ export function CanvasView() {
           setFloorDropTargetId(null);
         }
       }}
+      onDragOver={(e) => {
+        const dragPlacing = paletteDragPlacing(e) ?? previewPlacing;
+        if (!dragPlacing) return;
+        e.preventDefault();
+        const cell = cellAt(e);
+        setHoverCell(cell);
+        setFloorDropTargetId(canPlaceOnFloor(dragPlacing) ? floorDropTargetAtCell(doc.elements, cell) : null);
+      }}
+      onDragLeave={() => {
+        setHoverCell(null);
+        setFloorDropTargetId(null);
+      }}
+      onDrop={(e) => {
+        const dragPlacing = paletteDragPlacing(e) ?? previewPlacing;
+        if (!dragPlacing) return;
+        e.preventDefault();
+        const s = useDocStore.getState();
+        const created = createFromPlacing(dragPlacing, cellAt(e));
+        s.apply((els) => addElementWithFloorMembership(els, created));
+        s.select([created.id]);
+        setHoverCell(null);
+        setFloorDropTargetId(null);
+        s.setDragPlacing(null);
+        if (placing) s.setPlacing(null);
+      }}
     >
       <g transform={`translate(${cam.x} ${cam.y}) scale(${cam.zoom})`}>
         <Grid view={doc.view} />
@@ -441,9 +473,9 @@ export function CanvasView() {
           onElementPointerDown={onElementPointerDown}
           onFloorResizePointerDown={onFloorResizePointerDown}
           onElementDoubleClick={onElementDoubleClick}
-          ghost={placing && hoverCell ? (
+          ghost={previewPlacing && hoverCell ? (
             <g opacity={0.5} style={{ pointerEvents: 'none' }}>
-              <Scene elements={[createFromPlacing(placing, hoverCell)]} view={doc.view} />
+              <Scene elements={[createFromPlacing(previewPlacing, hoverCell)]} view={doc.view} />
             </g>
           ) : null}
         />
