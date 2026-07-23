@@ -439,7 +439,6 @@ export function CanvasView() {
         const dragPlacing = paletteDragPlacing(e) ?? placing;
         if (!dragPlacing) return;
         e.preventDefault();
-        e.dataTransfer.dropEffect = 'copy';
         const cell = cellAt(e);
         setHoverCell(cell);
         setFloorDropTargetId(canPlaceOnFloor(dragPlacing) ? floorDropTargetAtCell(doc.elements, cell) : null);
