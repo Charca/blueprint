@@ -24,6 +24,11 @@ type Drag = PanDrag | MoveDrag | ConnectDrag | ResizeDrag | MarqueeDrag;
 interface Clipboard { elements: ModelElement[]; ids: string[] }
 
 const MIN_FLOOR_SIZE = 1;
+const PALETTE_DRAG_DATA_TYPE = 'application/x-blueprint-placing';
+
+function paletteDragPlacing(e: React.DragEvent): string | null {
+  return e.dataTransfer.getData(PALETTE_DRAG_DATA_TYPE) || e.dataTransfer.getData('text/plain') || null;
+}
 
 function isFloorChild(el: ModelElement) {
   return el.kind === 'asset' || el.kind === 'tag' || el.kind === 'text';
@@ -429,6 +434,31 @@ export function CanvasView() {
           setHoverTargetId(null);
           setFloorDropTargetId(null);
         }
+      }}
+      onDragOver={(e) => {
+        const dragPlacing = paletteDragPlacing(e) ?? placing;
+        if (!dragPlacing) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        const cell = cellAt(e);
+        setHoverCell(cell);
+        setFloorDropTargetId(canPlaceOnFloor(dragPlacing) ? floorDropTargetAtCell(doc.elements, cell) : null);
+      }}
+      onDragLeave={() => {
+        setHoverCell(null);
+        setFloorDropTargetId(null);
+      }}
+      onDrop={(e) => {
+        const dragPlacing = paletteDragPlacing(e) ?? placing;
+        if (!dragPlacing) return;
+        e.preventDefault();
+        const s = useDocStore.getState();
+        const created = createFromPlacing(dragPlacing, cellAt(e));
+        s.apply((els) => addElementWithFloorMembership(els, created));
+        s.select([created.id]);
+        setHoverCell(null);
+        setFloorDropTargetId(null);
+        s.setPlacing(null);
       }}
     >
       <g transform={`translate(${cam.x} ${cam.y}) scale(${cam.zoom})`}>

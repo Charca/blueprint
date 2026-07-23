@@ -75,6 +75,31 @@ describe('CanvasView', () => {
     expect(useDocStore.getState().selection).toEqual([elements[0].id]);
   });
 
+  it('drops a dragged palette graphic onto the canvas', () => {
+    const doc = createDoc('Palette drop');
+    useDocStore.getState().openDoc(doc.id);
+    const { container } = render(<CanvasView />);
+    const svg = container.querySelector('svg')!;
+    const dataTransfer = {
+      dropEffect: 'none',
+      getData: (type: string) => type === 'application/x-blueprint-placing' ? 'asset:cube-plain' : '',
+    };
+
+    const dragOver = new Event('dragover', { bubbles: true, cancelable: true });
+    Object.assign(dragOver, { clientX: 1, clientY: 1, dataTransfer });
+    const drop = new Event('drop', { bubbles: true, cancelable: true });
+    Object.assign(drop, { clientX: 1, clientY: 1, dataTransfer });
+
+    fireEvent(svg, dragOver);
+    fireEvent(svg, drop);
+
+    const elements = useDocStore.getState().doc!.elements;
+    expect(elements).toHaveLength(1);
+    expect(elements[0]).toMatchObject({ kind: 'asset', assetId: 'cube-plain', gridX: 0, gridY: 0 });
+    expect(useDocStore.getState().selection).toEqual([elements[0].id]);
+    expect(useDocStore.getState().placing).toBeNull();
+  });
+
   it('highlights a floor drop target while placing a node over it', () => {
     const doc = createDoc('Floor highlight');
     useDocStore.getState().openDoc(doc.id);
