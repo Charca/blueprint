@@ -26,7 +26,7 @@ describe('CanvasView', () => {
     cleanup();
     localStorage.clear();
     SVGElement.prototype.setPointerCapture ??= vi.fn();
-    useDocStore.setState({ doc: null, selection: [], placing: null, tool: 'select', connectFrom: null, past: [], future: [], snapshot: null });
+    useDocStore.setState({ doc: null, selection: [], placing: null, dragPlacing: null, tool: 'select', connectFrom: null, past: [], future: [], snapshot: null });
     Element.prototype.setPointerCapture ??= () => undefined;
   });
 

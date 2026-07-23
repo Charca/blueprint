@@ -16,10 +16,13 @@ const EXTRAS = [
 const DRAG_DATA_TYPE = 'application/x-blueprint-placing';
 
 function beginPaletteDrag(e: React.DragEvent, key: string) {
-  e.dataTransfer.effectAllowed = 'copy';
   e.dataTransfer.setData(DRAG_DATA_TYPE, key);
   e.dataTransfer.setData('text/plain', key);
-  useDocStore.getState().setPlacing(key);
+  const dragImage = document.createElement('canvas');
+  dragImage.width = 1;
+  dragImage.height = 1;
+  e.dataTransfer.setDragImage(dragImage, 0, 0);
+  useDocStore.getState().setDragPlacing(key);
 }
 
 export function Palette() {
@@ -34,7 +37,7 @@ export function Palette() {
     beginPaletteDrag(e, key);
   };
   const onDragEnd = () => {
-    useDocStore.getState().setPlacing(null);
+    useDocStore.getState().setDragPlacing(null);
     window.setTimeout(() => { draggedRef.current = false; }, 0);
   };
   const onPaletteClick = (key: string) => {
