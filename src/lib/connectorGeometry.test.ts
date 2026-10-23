@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest';
 import type { AssetEl, Element } from '../model/types';
 import { anchorOfElement } from '../model/ops';
 import { project } from './projection';
-import { edgePoint, elementAtProjectedPoint, projectedElementHull } from './connectorGeometry';
+import {
+  DEFAULT_CONNECTOR_ROUTE,
+  connectorPathD,
+  connectorRoutePoints,
+  edgePoint,
+  elementAtProjectedPoint,
+  padConnectorHeadEndpoints,
+  projectedElementHull,
+} from './connectorGeometry';
 
 const ISO = { rotation: 0 as const, mode: 'iso' as const };
 
@@ -24,6 +32,43 @@ describe('connectorGeometry', () => {
     expect(start.y).toBeCloseTo(34.641, 3);
     expect(end.x).toBeCloseTo(69.904, 3);
     expect(end.y).toBeCloseTo(40.359, 3);
+  });
+
+  it('generates rounded elbow connector paths through orthogonal bend points', () => {
+    const start = { x: 0, y: 0 };
+    const end = { x: 100, y: 80 };
+    const points = connectorRoutePoints(start, end, null, null, 'elbow');
+
+    expect(DEFAULT_CONNECTOR_ROUTE).toBe('elbow');
+    expect(points).toEqual([
+      start,
+      { x: 50, y: 0 },
+      { x: 50, y: 80 },
+      end,
+    ]);
+    expect(connectorPathD(points, true)).toContain('Q 50 0');
+  });
+
+  it('uses a custom elbow offset for routed connectors', () => {
+    const start = { x: 0, y: 0 };
+    const end = { x: 100, y: 80 };
+    expect(connectorRoutePoints(start, end, null, null, 'elbow', 25)).toEqual([
+      start,
+      { x: 75, y: 0 },
+      { x: 75, y: 80 },
+      end,
+    ]);
+  });
+
+  it('pads connector endpoints that have heads away from shapes', () => {
+    const points = [{ x: 0, y: 0 }, { x: 50, y: 0 }, { x: 50, y: 80 }, { x: 100, y: 80 }];
+    expect(padConnectorHeadEndpoints(points, false, true, 12)).toEqual([
+      points[0],
+      points[1],
+      points[2],
+      { x: 88, y: 80 },
+    ]);
+    expect(padConnectorHeadEndpoints(points, true, false, 12)[0]).toEqual({ x: 12, y: 0 });
   });
 
   it('finds the topmost connectable element under a projected point', () => {

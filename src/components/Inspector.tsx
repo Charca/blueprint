@@ -1,8 +1,18 @@
-import { Trash2 } from 'lucide-react';
+import type { ComponentType } from 'react';
+import { ArrowRight, Circle, CornerDownRight, Minus, Square, Trash2, Triangle } from 'lucide-react';
 import { PRESETS } from '../lib/color';
+import { connectorEndHead, connectorRoute, connectorStartHead } from '../lib/connectorGeometry';
 import { deleteElements, floorBounds, floorChildren, setLabel, updateElement } from '../model/ops';
-import type { ConnectorEl, FloorEl, Label, TagEl } from '../model/types';
+import type { ConnectorEl, ConnectorHead, ConnectorRoute, FloorEl, Label, TagEl } from '../model/types';
 import { useDocStore } from '../store/docStore';
+
+const CONNECTOR_HEADS: { value: ConnectorHead; label: string; icon: ComponentType<{ size?: number }> }[] = [
+  { value: 'none', label: 'No head', icon: Minus },
+  { value: 'triangle', label: 'Triangle arrow', icon: Triangle },
+  { value: 'arrow', label: 'Arrow', icon: ArrowRight },
+  { value: 'circle', label: 'Circle', icon: Circle },
+  { value: 'square', label: 'Square', icon: Square },
+];
 
 export function Inspector() {
   const doc = useDocStore((s) => s.doc);
@@ -61,14 +71,10 @@ export function Inspector() {
         />
       )}
       {single?.kind === 'connector' && (
-        <div className="bp-insp-row">
-          {(['solid', 'dashed', 'dotted'] as const).map((style) => (
-            <button key={style}
-              className={`bp-chip${(single as ConnectorEl).style === style ? ' bp-active' : ''}`}
-              onClick={() => apply((els) => updateElement(els, single.id, { style }))}
-            >{style}</button>
-          ))}
-        </div>
+        <ConnectorControls
+          el={single}
+          onPatch={(patch) => apply((els) => updateElement(els, single.id, patch))}
+        />
       )}
       {single?.kind === 'tag' && (single as TagEl).style === 'bubble' && (
         <div className="bp-insp-row">
@@ -89,6 +95,45 @@ export function Inspector() {
         </button>
       </div>
     </div>
+  );
+}
+
+function ConnectorControls({ el, onPatch }: { el: ConnectorEl; onPatch: (p: Partial<ConnectorEl>) => void }) {
+  const HeadButtons = ({ value, field }: { value: ConnectorHead; field: 'startHead' | 'endHead' }) => (
+    <>
+      {CONNECTOR_HEADS.map(({ value: head, label, icon: Icon }) => (
+        <button key={head} title={label}
+          className={`bp-chip${value === head ? ' bp-active' : ''}`}
+          onClick={() => onPatch({ [field]: head } as Partial<ConnectorEl>)}>
+          <Icon size={14} />
+        </button>
+      ))}
+    </>
+  );
+  return (
+    <>
+      <div className="bp-insp-section">Connector</div>
+      <div className="bp-insp-row">
+        {(['solid', 'dashed', 'dotted'] as const).map((style) => (
+          <button key={style}
+            className={`bp-chip${el.style === style ? ' bp-active' : ''}`}
+            onClick={() => onPatch({ style })}
+          >{style}</button>
+        ))}
+      </div>
+      <div className="bp-insp-row">
+        {(['sharp', 'elbow'] as ConnectorRoute[]).map((route) => (
+          <button key={route}
+            className={`bp-chip${connectorRoute(el) === route ? ' bp-active' : ''}`}
+            onClick={() => onPatch({ route })}
+          >{route === 'elbow' && <CornerDownRight size={14} />}{route}</button>
+        ))}
+      </div>
+      <div className="bp-insp-section">Start head</div>
+      <div className="bp-insp-row"><HeadButtons value={connectorStartHead(el)} field="startHead" /></div>
+      <div className="bp-insp-section">End head</div>
+      <div className="bp-insp-row"><HeadButtons value={connectorEndHead(el)} field="endHead" /></div>
+    </>
   );
 }
 

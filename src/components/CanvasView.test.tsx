@@ -75,6 +75,26 @@ describe('CanvasView', () => {
     expect(useDocStore.getState().selection).toEqual([elements[0].id]);
   });
 
+  it('selects newly created connectors', () => {
+    useDocStore.setState({
+      doc: docWithElements([asset('a', 0, 0), asset('b', 4, 0)]),
+      selection: [],
+      tool: 'connect',
+    });
+    const { container } = render(<CanvasView />);
+    const svg = container.querySelector('svg')!;
+    const assetGroups = Array.from(container.querySelectorAll('g[style*="cursor: move"]'));
+
+    fireEvent.pointerDown(assetGroups[0], { clientX: 0, clientY: 0, pointerId: 1 });
+    fireEvent.pointerMove(svg, { clientX: 200, clientY: 0, pointerId: 1 });
+    fireEvent.pointerUp(svg, { pointerId: 1 });
+
+    const connector = useDocStore.getState().doc!.elements.find((el): el is ConnectorEl => el.kind === 'connector');
+    expect(connector).toBeTruthy();
+    expect(connector?.route).toBe('elbow');
+    expect(useDocStore.getState().selection).toEqual([connector!.id]);
+  });
+
   it('highlights a floor drop target while placing a node over it', () => {
     const doc = createDoc('Floor highlight');
     useDocStore.getState().openDoc(doc.id);
@@ -177,5 +197,24 @@ describe('CanvasView', () => {
       expect.objectContaining({ gridX: 7, gridY: 1 }),
     ]));
     expect(state.selection).toEqual(clones.map((el) => el.id));
+  });
+
+  it('customizes selected elbow connectors by dragging the handle', () => {
+    useDocStore.setState({
+      doc: docWithElements([asset('a', 0, 0), asset('b', 4, 2), conn('c', 'a', 'b')]),
+      selection: ['c'],
+      tool: 'select',
+    });
+    const { container } = render(<CanvasView />);
+    const svg = container.querySelector('svg')!;
+    const handle = container.querySelector('circle[fill="#ffffff"][stroke="#7C5CFF"]')!;
+
+    fireEvent.pointerDown(handle, { clientX: 100, clientY: 50, pointerId: 1 });
+    fireEvent.pointerMove(svg, { clientX: 150, clientY: 50, pointerId: 1 });
+    fireEvent.pointerUp(svg, { pointerId: 1 });
+
+    const connector = useDocStore.getState().doc!.elements.find((el): el is ConnectorEl => el.kind === 'connector')!;
+    expect(connector.elbowOffset).toBe(50);
+    expect(useDocStore.getState().selection).toEqual(['c']);
   });
 });

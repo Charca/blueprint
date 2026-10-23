@@ -1,7 +1,18 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { project, unproject } from '../lib/projection';
+import { planeMatrix, project, unproject } from '../lib/projection';
 import type { Point } from '../lib/projection';
-import { edgePoint, elementAtProjectedPoint, projectedElementHull } from '../lib/connectorGeometry';
+import {
+  connectorPathD,
+  connectorRoutePoints,
+  DEFAULT_CONNECTOR_END_HEAD,
+  DEFAULT_CONNECTOR_ROUTE,
+  DEFAULT_CONNECTOR_START_HEAD,
+  elementAtProjectedPoint,
+  padConnectorHeadEndpoints,
+  planeElementHull,
+  planePoint,
+  projectedElementHull,
+} from '../lib/connectorGeometry';
 import { uid } from '../lib/ids';
 import {
   anchorOfElement,
@@ -19,8 +30,9 @@ interface PanDrag { kind: 'pan'; sx: number; sy: number; cx: number; cy: number 
 interface MoveDrag { kind: 'move'; last: Point; ids: string[]; moved: boolean }
 interface ConnectDrag { kind: 'connect'; fromId: string; pointer: Point; targetId: string | null }
 interface ResizeDrag { kind: 'resize-floor'; id: string; side: FloorResizeSide; start: Point; bounds: { gridX: number; gridY: number; width: number; depth: number } }
+interface ConnectorElbowDrag { kind: 'connector-elbow'; id: string }
 interface MarqueeDrag { kind: 'marquee'; start: Point; current: Point }
-type Drag = PanDrag | MoveDrag | ConnectDrag | ResizeDrag | MarqueeDrag;
+type Drag = PanDrag | MoveDrag | ConnectDrag | ResizeDrag | ConnectorElbowDrag | MarqueeDrag;
 interface Clipboard { elements: ModelElement[]; ids: string[] }
 
 const MIN_FLOOR_SIZE = 1;
@@ -297,6 +309,14 @@ export function CanvasView() {
     setDrag({ kind: 'resize-floor', id, side, start: unproject(toWorld(e), doc.view), bounds });
   };
 
+  const onConnectorElbowPointerDown = (e: React.PointerEvent, id: string) => {
+    const s = useDocStore.getState();
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    s.select([id]);
+    s.beginTransient();
+    setDrag({ kind: 'connector-elbow', id });
+  };
+
   const onElementDoubleClick = (id: string) => {
     const s = useDocStore.getState();
     const el = doc.elements.find((x) => x.id === id);
@@ -397,13 +417,25 @@ export function CanvasView() {
               ? { ...el, ...resizeFloorPatch(drag, pointer) }
               : el
           )));
+        } else if (drag.kind === 'connector-elbow') {
+          const pointer = planePoint(unproject(toWorld(e), doc.view));
+          s.applyTransient((els) => els.map((el) => {
+            if (el.id !== drag.id || el.kind !== 'connector') return el;
+            const from = els.find((candidate) => candidate.id === el.fromId);
+            const to = els.find((candidate) => candidate.id === el.toId);
+            if (!from || !to) return el;
+            const fa = anchorOfElement(from, els), ta = anchorOfElement(to, els);
+            if (!fa || !ta) return el;
+            const defaultBendX = (planePoint(fa).x + planePoint(ta).x) / 2;
+            return { ...el, elbowOffset: pointer.x - defaultBendX };
+          }));
         } else if (drag.kind === 'marquee') {
           setDrag({ ...drag, current: toWorld(e) });
         }
       }}
       onPointerUp={() => {
         const s = useDocStore.getState();
-        if (drag?.kind === 'move' || drag?.kind === 'resize-floor') s.commitTransient();
+        if (drag?.kind === 'move' || drag?.kind === 'resize-floor' || drag?.kind === 'connector-elbow') s.commitTransient();
         if (drag?.kind === 'marquee') {
           const rect = rectFromPoints(drag.start, drag.current);
           if (rect.width >= 4 || rect.height >= 4) {
@@ -417,9 +449,14 @@ export function CanvasView() {
         if (drag?.kind === 'connect' && drag.targetId && drag.targetId !== drag.fromId) {
           const fromId = drag.fromId;
           const toId = drag.targetId;
+          const id = uid();
           s.apply((els) => addElement(els, {
-            kind: 'connector', id: uid(), fromId, toId, style: 'solid', color: '#425066',
+            kind: 'connector', id, fromId, toId, style: 'solid', color: '#425066',
+            startHead: DEFAULT_CONNECTOR_START_HEAD,
+            endHead: DEFAULT_CONNECTOR_END_HEAD,
+            route: DEFAULT_CONNECTOR_ROUTE,
           }));
+          s.select([id]);
         }
         setDrag(null);
         setFloorDropTargetId(null);
@@ -440,6 +477,7 @@ export function CanvasView() {
           highlightedFloorId={floorDropTargetId}
           onElementPointerDown={onElementPointerDown}
           onFloorResizePointerDown={onFloorResizePointerDown}
+          onConnectorElbowPointerDown={onConnectorElbowPointerDown}
           onElementDoubleClick={onElementDoubleClick}
           ghost={placing && hoverCell ? (
             <g opacity={0.5} style={{ pointerEvents: 'none' }}>
@@ -507,13 +545,28 @@ function ConnectorPreview({
   if (!from) return null;
   const fa = anchorOfElement(from, elements);
   if (!fa) return null;
-  const fromCenter = project(fa, view);
+  const fromCenter = planePoint(fa);
   const toAnchor = to ? anchorOfElement(to, elements) : null;
-  const toPoint = to && toAnchor ? project(toAnchor, view) : pointer;
-  const start = edgePoint(fromCenter, toPoint, projectedElementHull(from, elements, view));
-  const end = to && toAnchor
-    ? edgePoint(toPoint, fromCenter, projectedElementHull(to, elements, view))
-    : toPoint;
+  const toPoint = to && toAnchor ? planePoint(toAnchor) : planePoint(unproject(pointer, view));
+  const points = to && toAnchor
+    ? connectorRoutePoints(
+        fromCenter,
+        toPoint,
+        planeElementHull(from, elements),
+        planeElementHull(to, elements),
+        DEFAULT_CONNECTOR_ROUTE,
+      )
+    : connectorRoutePoints(
+        fromCenter,
+        toPoint,
+        planeElementHull(from, elements),
+        null,
+        DEFAULT_CONNECTOR_ROUTE,
+      );
+  const d = connectorPathD(
+    padConnectorHeadEndpoints(points, false, true),
+    DEFAULT_CONNECTOR_ROUTE === 'elbow',
+  );
   return (
     <g pointerEvents="none">
       <defs>
@@ -522,9 +575,11 @@ function ConnectorPreview({
           <path d="M0 0L10 5L0 10z" fill="#425066" />
         </marker>
       </defs>
-      <line x1={start.x} y1={start.y} x2={end.x} y2={end.y}
-        stroke="#425066" strokeWidth={3} strokeLinecap="round"
-        markerEnd="url(#arrow-preview)" opacity={0.78} />
+      <g transform={planeMatrix({ x: 0, y: 0 }, view)}>
+        <path d={d} fill="none"
+          stroke="#425066" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
+          markerEnd="url(#arrow-preview)" opacity={0.78} />
+      </g>
     </g>
   );
 }
