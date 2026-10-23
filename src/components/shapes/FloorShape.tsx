@@ -1,7 +1,7 @@
 import type { PointerEvent } from 'react';
 import { CELL, planeMatrix, project } from '../../lib/projection';
 import { derivePalette } from '../../lib/color';
-import { floorBounds } from '../../model/ops';
+import { floorBounds, floorShadowOf, floorThickness, floorTypeOf } from '../../model/ops';
 import type { Element, FloorEl } from '../../model/types';
 import type { ShapeProps } from './AssetShape';
 import { LabelView } from './LabelView';
@@ -29,7 +29,9 @@ export function FloorShape({
   const w = bounds.width * CELL, d = bounds.depth * CELL;
   const rx = el.corners === 'pill' ? Math.min(w, d) / 2 : el.corners === 'rounded' ? 18 : 0;
   const pal = derivePalette(el.color);
-  const thickness = view.mode === 'iso' ? 6 : 0;
+  const type = floorTypeOf(el);
+  const hasShadow = floorShadowOf(el);
+  const thickness = floorThickness(el, view.mode);
   const floorCenter = project({
     x: bounds.gridX + (bounds.width - 1) / 2,
     y: bounds.gridY + (bounds.depth - 1) / 2,
@@ -60,6 +62,14 @@ export function FloorShape({
       onDoubleClick={() => onDoubleClick?.(el.id)}
       style={onPointerDown ? { cursor: 'move' } : undefined}
     >
+      {hasShadow && type === 'flat' && (
+        <g transform={`translate(0 ${thickness + 8})`} opacity={0.16}
+          style={{ filter: 'blur(7px)' }} pointerEvents="none">
+          <g transform={m}>
+            <rect x={6} y={6} width={Math.max(0, w - 12)} height={Math.max(0, d - 12)} rx={rx} fill="#1d2433" />
+          </g>
+        </g>
+      )}
       {thickness > 0 && (
         <g transform={`translate(0 ${thickness})`}>
           <g transform={m}>

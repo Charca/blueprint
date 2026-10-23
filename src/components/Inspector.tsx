@@ -105,6 +105,15 @@ function FloorControls({
   };
   return (
     <>
+      <div className="bp-insp-section">Floor</div>
+      <div className="bp-insp-row">
+        {(['raised', 'flat'] as const).map((floorType) => (
+          <button key={floorType} className={`bp-chip${(el.floorType ?? 'flat') === floorType ? ' bp-active' : ''}`}
+            onClick={() => onPatch({ floorType })}>{floorType}</button>
+        ))}
+        <button className={`bp-chip${(el.floorShadow ?? true) ? ' bp-active' : ''}`}
+          onClick={() => onPatch({ floorShadow: !(el.floorShadow ?? true) })}>shadow</button>
+      </div>
       <div className="bp-insp-row">
         {(['auto', 'manual'] as const).map((sizeMode) => (
           <button key={sizeMode} className={`bp-chip${mode === sizeMode ? ' bp-active' : ''}`}
