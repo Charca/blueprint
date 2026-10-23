@@ -9,6 +9,10 @@ const ASSET_LEFT = 60;
 const ASSET_TOP = 85;
 const ASSET_RIGHT = 60;
 const ASSET_BOTTOM = 35;
+const STANDALONE_TAG_MAX_CHARS = 22;
+const STANDALONE_TAG_LINE_HEIGHT = 18;
+const PLAIN_TEXT_MAX_CHARS = 24;
+const PLAIN_TEXT_LINE_HEIGHT = 18;
 
 function rectPoints(left: number, top: number, right: number, bottom: number): Point[] {
   return [
@@ -36,17 +40,23 @@ export function projectedElementHull(el: Element, elements: Element[], view: Vie
     return rectPoints(pt.x - ASSET_LEFT, pt.y - ASSET_TOP, pt.x + ASSET_RIGHT, pt.y + ASSET_BOTTOM);
   }
   if (el.kind === 'tag') {
+    const lines = wrapText(el.text, STANDALONE_TAG_MAX_CHARS, 2, true);
+    const longestLine = lines.reduce((max, line) => Math.max(max, line.length), 0);
     const width = el.style === 'tips'
-      ? el.text.length * 7.5 + 44
-      : el.text.length * 8 + (el.icon ? 56 : 38);
-    return rectPoints(pt.x - width / 2, pt.y - 22, pt.x + width / 2, pt.y + 32);
+      ? longestLine * 7.5 + 44
+      : longestLine * 8 + (el.icon ? 56 : 38);
+    const height = Math.max(54, lines.length * STANDALONE_TAG_LINE_HEIGHT + 24);
+    return rectPoints(pt.x - width / 2, pt.y - height / 2, pt.x + width / 2, pt.y + height / 2);
   }
   if (el.kind === 'text' && el.variant === 'callout') {
     const height = 20 + (el.title ? 24 : 0) + wrapText(el.content, 34).length * 18;
     return rectPoints(pt.x - 120, pt.y, pt.x + 120, pt.y + height);
   }
-  const width = el.content.length * 9 + 16;
-  return rectPoints(pt.x - width / 2, pt.y - 16, pt.x + width / 2, pt.y + 10);
+  const lines = wrapText(el.content, PLAIN_TEXT_MAX_CHARS, 2, true);
+  const longestLine = lines.reduce((max, line) => Math.max(max, line.length), 0);
+  const width = longestLine * 9 + 16;
+  const height = lines.length * PLAIN_TEXT_LINE_HEIGHT + 8;
+  return rectPoints(pt.x - width / 2, pt.y - height / 2, pt.x + width / 2, pt.y + height / 2);
 }
 
 function lineIntersection(from: Point, to: Point, a: Point, b: Point): { t: number; point: Point } | null {

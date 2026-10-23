@@ -40,7 +40,7 @@ export function AssetShape({ el, view, selected, onPointerDown, onDoubleClick }:
       style={onPointerDown ? { cursor: 'move' } : undefined}
     >
       <ArtworkGlyph def={def} instanceId={el.id} color={el.color} />
-      {el.label && <LabelView label={el.label} anchor={LABEL_ANCHOR} />}
+      {el.label && <LabelView label={el.label} anchor={LABEL_ANCHOR} align="center" />}
       {selected && (
         <rect x={2} y={-4} width={116} height={124} rx={10}
           fill="none" stroke="#7C5CFF" strokeWidth={1.5} strokeDasharray="5 4" />
