@@ -91,6 +91,23 @@ button { font: inherit; cursor: pointer; }
 .bp-label-editor { width: 100%; padding: 7px 10px; border: 2px dashed #9b9b97; border-radius: 10px; background: #fff; font: 700 15px Inter, ui-sans-serif, system-ui, -apple-system, sans-serif; text-align: center; color: #202126; outline: none; }
 .bp-insp-section { font-size: 11px; font-weight: 750; letter-spacing: 0.02em; color: #6f7075; margin-top: 4px; }
 
+.bp-label-devtools-toggle { position: absolute; right: 18px; bottom: 18px; z-index: 10; display: inline-flex; align-items: center; gap: 8px; border: 1px solid rgba(45,46,52,0.8); border-radius: 12px; padding: 9px 12px; background: rgba(31,32,36,0.92); color: #fff; font-size: 12px; font-weight: 700; box-shadow: 0 12px 30px rgba(25,25,28,0.22); backdrop-filter: blur(14px); }
+.bp-label-devtools-toggle:hover { background: #303138; }
+.bp-label-devtools { position: absolute; right: 18px; bottom: 18px; z-index: 10; width: 330px; max-width: calc(100% - 36px); max-height: calc(100% - 36px); display: flex; flex-direction: column; overflow: hidden; border: 1px solid rgba(62,63,70,0.9); border-radius: 16px; background: rgba(31,32,36,0.95); color: #fff; box-shadow: 0 20px 60px rgba(20,20,23,0.32); backdrop-filter: blur(18px); }
+.bp-label-devtools header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 12px 11px 14px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.bp-label-devtools header > div:first-child { display: flex; flex-direction: column; gap: 2px; }
+.bp-label-devtools header strong { font-size: 13px; }
+.bp-label-devtools header small { color: #a9abb4; font-size: 10px; }
+.bp-label-devtools-actions { display: flex; gap: 3px; }
+.bp-label-devtools-actions button { display: inline-flex; align-items: center; justify-content: center; width: 29px; height: 29px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: #c8cad1; }
+.bp-label-devtools-actions button:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.bp-label-devtools-scroll { padding: 4px 12px 12px; overflow-y: auto; }
+.bp-label-devtools section { padding-top: 10px; }
+.bp-label-devtools h3 { margin: 0 0 7px; color: #a9abb4; font-size: 10px; line-height: 1; text-transform: uppercase; letter-spacing: 0.08em; }
+.bp-label-devtools-control { display: grid; grid-template-columns: 84px minmax(0, 1fr) 54px; align-items: center; gap: 8px; min-height: 30px; color: #dedfe4; font-size: 11px; }
+.bp-label-devtools-control input[type='range'] { width: 100%; accent-color: #7394f3; }
+.bp-label-devtools-control input[type='number'] { width: 54px; border: 1px solid rgba(255,255,255,0.14); border-radius: 7px; padding: 4px 5px; background: rgba(255,255,255,0.07); color: #fff; font: inherit; text-align: right; }
+
 @media (max-width: 760px) {
   .bp-palette { top: 10px; left: 10px; width: 86px; max-height: calc(100% - 20px); padding: 10px; }
   .bp-search, .bp-palette-section, .bp-palette-row { font-size: 0; }

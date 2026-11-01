@@ -12,16 +12,18 @@ const labeled = (orientation: 'left' | 'right'): AssetEl => ({
 });
 
 describe('AssetShape tag labels', () => {
-  it('sit on the named side of the shape, along that base edge', () => {
-    // w = 5*8+28 = 68 → along-axis shift = w/2 + 10 = 44
+  it('centers tags along the named base edge regardless of their width', () => {
     const right = renderToStaticMarkup(<AssetShape el={labeled('right')} view={ISO} />);
     const left = renderToStaticMarkup(<AssetShape el={labeled('left')} view={ISO} />);
-    // right side: up-right axis, shifted outward (+)
     expect(right).toContain('matrix(0.8660254037844386 -0.5 0.8660254037844386 0.5 60 129)');
-    expect(right).toContain('translate(44 0)');
-    // left side: down-right axis, shifted outward (−)
+    expect(right).toContain('translate(25 0)');
     expect(left).toContain('matrix(0.8660254037844386 0.5 -0.8660254037844386 0.5 60 129)');
-    expect(left).toContain('translate(-44 0)');
+    expect(left).toContain('translate(-25 0)');
+
+    const long = renderToStaticMarkup(
+      <AssetShape el={{ ...labeled('left'), label: { ...labeled('left').label!, text: 'A much longer label name' } }} view={ISO} />,
+    );
+    expect(long).toContain('translate(-25 0)');
   });
 
   it('keeps artwork DOM nodes stable across re-renders', () => {

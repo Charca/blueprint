@@ -5,13 +5,15 @@ import { anchorOfElement, floorBounds } from '../model/ops';
 import type { Doc, Element } from '../model/types';
 import { Scene } from '../components/Scene';
 import { wrapText } from '../lib/wrap';
+import { labelLines, labelWidth } from '../lib/labelLayout';
+import { useLabelTuningStore } from '../store/labelTuningStore';
 
 const PAD = 80;
-const FLOOR_LABEL_GAP = 42;
 
 export interface Bounds { minX: number; minY: number; width: number; height: number }
 
 export function contentBounds(elements: Element[], view: ViewState): Bounds {
+  const tuning = useLabelTuningStore.getState();
   const pts: { x: number; y: number }[] = [];
   for (const el of elements) {
     if (el.kind === 'floor') {
@@ -40,11 +42,13 @@ export function contentBounds(elements: Element[], view: ViewState): Bounds {
         const outward = { x: sideCenter.x - floorCenter.x, y: sideCenter.y - floorCenter.y };
         const outwardLen = Math.hypot(outward.x, outward.y) || 1;
         const c = {
-          x: sideCenter.x + (outward.x / outwardLen) * FLOOR_LABEL_GAP,
-          y: sideCenter.y + (view.mode === 'iso' ? 6 : 0) + (outward.y / outwardLen) * FLOOR_LABEL_GAP,
+          x: sideCenter.x + (outward.x / outwardLen) * tuning.floorGap + tuning.floorOffsetX,
+          y: sideCenter.y + (view.mode === 'iso' ? 6 : 0) + (outward.y / outwardLen) * tuning.floorGap + tuning.floorOffsetY,
         };
-        const halfW = (el.label.text.length * 8 + 28) / 2 + 12;
-        pts.push({ x: c.x - halfW, y: c.y - 20 }, { x: c.x + halfW, y: c.y + 20 });
+        const lines = labelLines(el.label.text, tuning.labelWrapAt);
+        const halfW = labelWidth(lines, tuning.tagInlinePadding) / 2 + 12;
+        const halfH = lines.length > 1 ? 28 : 20;
+        pts.push({ x: c.x - halfW, y: c.y - halfH }, { x: c.x + halfW, y: c.y + halfH });
       }
     } else {
       const a = anchorOfElement(el, elements);
@@ -52,8 +56,9 @@ export function contentBounds(elements: Element[], view: ViewState): Bounds {
       const pt = project(a, view);
       pts.push(pt);
       if (el.kind === 'asset' && el.label) {
-        const halfW = (el.label.text.length * 8 + 28) / 2 + 12;
-        pts.push({ x: pt.x - halfW, y: pt.y }, { x: pt.x + halfW, y: pt.y + 74 });
+        const lines = labelLines(el.label.text, tuning.labelWrapAt);
+        const halfW = labelWidth(lines, tuning.tagInlinePadding) / 2 + 12;
+        pts.push({ x: pt.x - halfW, y: pt.y }, { x: pt.x + halfW, y: pt.y + (lines.length > 1 ? 86 : 74) });
       }
       if (el.kind === 'text') {
         const cardH = 20 + (el.title ? 24 : 0) + wrapText(el.content, 34).length * 18;

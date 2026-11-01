@@ -5,8 +5,8 @@ import { floorBounds } from '../../model/ops';
 import type { Element, FloorEl } from '../../model/types';
 import type { ShapeProps } from './AssetShape';
 import { LabelView } from './LabelView';
+import { useLabelTuningStore } from '../../store/labelTuningStore';
 
-const FLOOR_LABEL_GAP = 42;
 const HANDLE = 12;
 
 type ResizeSide = 'left' | 'right' | 'top' | 'bottom';
@@ -23,6 +23,9 @@ export function FloorShape({
   highlighted?: boolean;
   onResizePointerDown?: (e: PointerEvent, id: string, side: ResizeSide) => void;
 }) {
+  const floorGap = useLabelTuningStore((state) => state.floorGap);
+  const floorOffsetX = useLabelTuningStore((state) => state.floorOffsetX);
+  const floorOffsetY = useLabelTuningStore((state) => state.floorOffsetY);
   const bounds = elements ? floorBounds(elements, el) : el;
   const corner = { x: bounds.gridX - 0.5, y: bounds.gridY - 0.5 };
   const m = planeMatrix(corner, view);
@@ -50,8 +53,8 @@ export function FloorShape({
   const outward = { x: sideCenter.x - floorCenter.x, y: sideCenter.y - floorCenter.y };
   const outwardLen = Math.hypot(outward.x, outward.y) || 1;
   const labelAnchor = {
-    x: sideCenter.x + (outward.x / outwardLen) * FLOOR_LABEL_GAP,
-    y: sideCenter.y + thickness + (outward.y / outwardLen) * FLOOR_LABEL_GAP,
+    x: sideCenter.x + (outward.x / outwardLen) * floorGap + floorOffsetX,
+    y: sideCenter.y + thickness + (outward.y / outwardLen) * floorGap + floorOffsetY,
   };
 
   return (

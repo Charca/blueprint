@@ -4,6 +4,7 @@ import { useAppStore } from '../store/appStore';
 import { useDocStore } from '../store/docStore';
 import { CanvasView } from './CanvasView';
 import { Inspector } from './Inspector';
+import { LabelDevtools } from './LabelDevtools';
 import { Palette } from './Palette';
 import { ToolDock } from './ToolDock';
 import { TopBar } from './TopBar';
@@ -34,6 +35,7 @@ export function Editor({ docId }: { docId: string }) {
           <CanvasView />
           <Inspector />
           <ToolDock />
+          {import.meta.env.DEV && <LabelDevtools />}
         </div>
       </div>
     </div>

@@ -6,6 +6,7 @@ import { instanceMarkup } from '../../lib/assetInstance';
 import { project } from '../../lib/projection';
 import type { ViewState } from '../../lib/projection';
 import type { AssetEl } from '../../model/types';
+import { useLabelTuningStore } from '../../store/labelTuningStore';
 import { LabelView } from './LabelView';
 
 export interface ShapeProps<T> {
@@ -15,8 +16,6 @@ export interface ShapeProps<T> {
   onPointerDown?: (e: PointerEvent, id: string) => void;
   onDoubleClick?: (id: string) => void;
 }
-
-const LABEL_ANCHOR = { x: 60, y: 129 }; // artwork coords: base vertex + 44px
 
 // Memoized so re-renders (selection, drag) never re-commit the innerHTML:
 // React 19 rewrites dangerouslySetInnerHTML on every commit even when the
@@ -29,6 +28,8 @@ const ArtworkGlyph = memo(function ArtworkGlyph({
 });
 
 export function AssetShape({ el, view, selected, onPointerDown, onDoubleClick }: ShapeProps<AssetEl>) {
+  const anchorX = useLabelTuningStore((state) => state.assetAnchorX);
+  const anchorY = useLabelTuningStore((state) => state.assetAnchorY);
   const def = ASSETS[el.assetId];
   if (!def) return null;
   const pt = project({ x: el.gridX, y: el.gridY }, view);
@@ -40,7 +41,7 @@ export function AssetShape({ el, view, selected, onPointerDown, onDoubleClick }:
       style={onPointerDown ? { cursor: 'move' } : undefined}
     >
       <ArtworkGlyph def={def} instanceId={el.id} color={el.color} />
-      {el.label && <LabelView label={el.label} anchor={LABEL_ANCHOR} />}
+      {el.label && <LabelView label={el.label} anchor={{ x: anchorX, y: anchorY }} align="edge" />}
       {selected && (
         <rect x={2} y={-4} width={116} height={124} rx={10}
           fill="none" stroke="#7C5CFF" strokeWidth={1.5} strokeDasharray="5 4" />

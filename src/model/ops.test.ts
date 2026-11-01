@@ -184,7 +184,7 @@ describe('ops', () => {
     let els: Element[] = [asset('a')];
     els = setLabel(els, 'a', 'API');
     expect((els[0] as AssetEl).label).toEqual({
-      text: 'API', style: 'text', color: '#2A3242', orientation: 'left',
+      text: 'API', style: 'tag', color: '#2A3242', orientation: 'left',
     });
     els = updateElement(els, 'a', {
       label: { ...(els[0] as AssetEl).label!, style: 'tag' as const },
@@ -199,7 +199,7 @@ describe('ops', () => {
     let els: Element[] = [floor('f')];
     els = setLabel(els, 'f', 'Zone A');
     expect((els[0] as FloorEl).label).toMatchObject({
-      text: 'Zone A', style: 'text', orientation: 'left',
+      text: 'Zone A', style: 'tag', orientation: 'left',
     });
     els = setLabel(els, 'f', '   ');
     expect((els[0] as FloorEl).label).toBeUndefined();
